@@ -790,7 +790,7 @@ The executing agent updates this table (Protocol step 6).
 | Milestone | Title | Status | Date | Tag |
 |---|---|---|---|---|
 | M00 | Repository & project scaffolding | ✅ | 2026-11-21 | |
-| M01 | Requirements specification | ⬜ | | |
+| M01 | Requirements specification | ✅ | 2026-11-21 | |
 | M02 | Architecture & detailed design | ⬜ | | |
 | M03 | Domain model | ⬜ | | |
 | M04 | Repositories & category service | ⬜ | | |
