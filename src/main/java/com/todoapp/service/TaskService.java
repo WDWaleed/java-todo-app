@@ -11,11 +11,14 @@ import com.todoapp.repository.TaskRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -282,6 +285,66 @@ public class TaskService {
 
         notifyListeners(ChangeType.UPDATED, id);
         return task.copy();
+    }
+
+    /**
+     * Queries and sorts tasks matching composite filtering, searching, and sorting criteria.
+     * Guaranteed invariants:
+     * - Pinned tasks always precede unpinned tasks.
+     * - Returns new list of defensive task copies.
+     * - Stable tiebreakers: {@code createdAt} followed by {@code id}.
+     *
+     * @param query query criteria (defaults to {@link TaskQuery#defaultQuery()} if null)
+     * @return filtered, sorted list of task copies
+     */
+    public List<Task> query(TaskQuery query) {
+        TaskQuery q = query != null ? query : TaskQuery.defaultQuery();
+
+        Predicate<Task> predicate = buildPredicate(q);
+
+        Comparator<Task> fullComparator = Comparator.comparing(Task::isPinned).reversed()
+                .thenComparing(q.sort().getComparator(q.ascending()))
+                .thenComparing(Task::getCreatedAt)
+                .thenComparing(Task::getId);
+
+        return taskRepo.findAll().stream()
+                .filter(predicate)
+                .sorted(fullComparator)
+                .map(Task::copy)
+                .toList();
+    }
+
+    private Predicate<Task> buildPredicate(TaskQuery q) {
+        Predicate<Task> predicate = t -> true;
+
+        // Category filter
+        if (q.categoryId() != null) {
+            predicate = predicate.and(t -> q.categoryId().equals(t.getCategoryId()));
+        }
+
+        // Status filter
+        if (q.status() == StatusFilter.ACTIVE) {
+            predicate = predicate.and(t -> !t.isCompleted());
+        } else if (q.status() == StatusFilter.COMPLETED) {
+            predicate = predicate.and(Task::isCompleted);
+        }
+
+        // Priority filter
+        if (q.priority() != null) {
+            predicate = predicate.and(t -> t.getPriority() == q.priority());
+        }
+
+        // Search text
+        String search = q.searchText() != null ? q.searchText().trim().toLowerCase(Locale.ROOT) : "";
+        if (!search.isEmpty()) {
+            predicate = predicate.and(t -> {
+                String title = t.getTitle().toLowerCase(Locale.ROOT);
+                String desc = t.getDescription().toLowerCase(Locale.ROOT);
+                return title.contains(search) || desc.contains(search);
+            });
+        }
+
+        return predicate;
     }
 
     private Task getEntity(UUID id) {
