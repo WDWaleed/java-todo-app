@@ -797,7 +797,7 @@ The executing agent updates this table (Protocol step 6).
 | M05 | Task service (CRUD, priority, pin, undo) | ✅ | 2026-11-21 | |
 | M06 | Query engine: filter, sort, search | ✅ | 2026-11-21 | |
 | M07 | Persistence (JSON + autosave) | ✅ | 2026-11-21 | v0.1.0 |
-| M08 | JavaFX GUI foundation & controller | ⬜ | | |
+| M08 | JavaFX GUI foundation & controller | ✅ | 2026-11-21 | |
 | M09 | Task CRUD in the GUI | ⬜ | | v0.2.0 |
 | M10 | Categories & organization in the GUI | ⬜ | | v0.3.0 |
 | M11 | Polish & extras | ⬜ | | |
