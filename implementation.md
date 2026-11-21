@@ -1,4 +1,4 @@
-# TODO List Desktop App — Implementation Plan
+.kkkkkkkko# TODO List Desktop App — Implementation Plan
 
 > **Project:** Simple TODO list desktop application (Google Keep / Microsoft Notes style) in Java, built with object-oriented design (classes, objects, inheritance, polymorphism), a **JavaFX** GUI, and Git version control.
 > **How to use this file:** tell an AI agent `Execute M03` (or `Execute M08.2`) and it must follow Section 0 exactly. Everything the agent needs is in this file.
@@ -794,7 +794,7 @@ The executing agent updates this table (Protocol step 6).
 | M02 | Architecture & detailed design | ✅ | 2026-11-21 | |
 | M03 | Domain model | ✅ | 2026-11-21 | |
 | M04 | Repositories & category service | ✅ | 2026-11-21 | |
-| M05 | Task service (CRUD, priority, pin, undo) | ⬜ | | |
+| M05 | Task service (CRUD, priority, pin, undo) | ✅ | 2026-11-21 | |
 | M06 | Query engine: filter, sort, search | ⬜ | | |
 | M07 | Persistence (JSON + autosave) | ⬜ | | v0.1.0 |
 | M08 | JavaFX GUI foundation & controller | ⬜ | | |
