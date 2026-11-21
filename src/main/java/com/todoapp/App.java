@@ -28,6 +28,13 @@ public class App extends Application {
      */
     public static final double DEFAULT_HEIGHT = 600;
 
+    /**
+     * Default constructor for JavaFX Application lifecycle.
+     */
+    public App() {
+        super();
+    }
+
     @Override
     public void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
