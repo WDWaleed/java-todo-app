@@ -18,6 +18,12 @@ public class InMemoryTaskRepository implements TaskRepository {
 
     private final Map<UUID, Task> tasks = new LinkedHashMap<>();
 
+    /**
+     * Constructs an empty in-memory task repository.
+     */
+    public InMemoryTaskRepository() {
+    }
+
     @Override
     public List<Task> findAll() {
         return new ArrayList<>(tasks.values());
