@@ -86,6 +86,11 @@ public class App extends Application {
         // Populate repositories from snapshot
         DataSync.loadInto(taskRepo, categoryRepo, appData);
 
+        // Optional development seed if requested and repository is empty
+        if (config.seed() && taskRepo.count() == 0) {
+            DevSeed.seedIfEmpty(taskRepo, categoryRepo);
+        }
+
         // Initialize business domain services
         CategoryService categoryService = new CategoryService(categoryRepo, taskRepo);
         TaskService taskService = new TaskService(taskRepo, categoryRepo, Clock.systemDefaultZone());

@@ -40,6 +40,16 @@ To pass program arguments during development (e.g. data path or seeding):
 mvn javafx:run -Djavafx.args="--data=my-tasks.json"
 ```
 
+### Developer Sample Seed
+
+For manual testing and feature verification, use `--seed` to pre-populate sample data:
+
+```bash
+mvn javafx:run -Djavafx.args="--seed --data=/tmp/todo-dev.json"
+```
+
+When `--seed` is passed, approximately 12 sample tasks (covering all task types, priority ranks, categories, pinned cards, and completion states) are populated **only if the target data file is empty**.
+
 ## Opening in Visual Studio Code
 
 1. Open VS Code.
