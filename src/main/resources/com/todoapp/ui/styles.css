@@ -1,0 +1,8 @@
+/*
+ * Stylesheet for TODO List Desktop App.
+ * Full component styling defined in subsequent milestones.
+ */
+.root {
+    -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 14px;
+}
