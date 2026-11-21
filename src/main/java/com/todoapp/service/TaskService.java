@@ -12,8 +12,10 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -312,6 +314,53 @@ public class TaskService {
                 .sorted(fullComparator)
                 .map(Task::copy)
                 .toList();
+    }
+
+    /**
+     * Counts tasks per priority level based on a base query.
+     * Computes the distribution across High, Medium, and Low priorities.
+     *
+     * @param base base query filters (category, status, search)
+     * @return EnumMap mapping each Priority to its matching task count
+     */
+    public Map<Priority, Integer> countByPriority(TaskQuery base) {
+        TaskQuery baseQuery = base != null ? base : TaskQuery.defaultQuery();
+        TaskQuery queryWithoutPriority = baseQuery.withPriority(null);
+
+        Predicate<Task> predicate = buildPredicate(queryWithoutPriority);
+        Map<Priority, Integer> counts = new EnumMap<>(Priority.class);
+        for (Priority p : Priority.values()) {
+            counts.put(p, 0);
+        }
+
+        for (Task task : taskRepo.findAll()) {
+            if (predicate.test(task)) {
+                counts.put(task.getPriority(), counts.get(task.getPriority()) + 1);
+            }
+        }
+        return counts;
+    }
+
+    /**
+     * Returns the total count of active (uncompleted) tasks.
+     *
+     * @return active task count
+     */
+    public int countActive() {
+        return (int) taskRepo.findAll().stream()
+                .filter(t -> !t.isCompleted())
+                .count();
+    }
+
+    /**
+     * Returns the total count of completed tasks.
+     *
+     * @return completed task count
+     */
+    public int countCompleted() {
+        return (int) taskRepo.findAll().stream()
+                .filter(Task::isCompleted)
+                .count();
     }
 
     private Predicate<Task> buildPredicate(TaskQuery q) {
