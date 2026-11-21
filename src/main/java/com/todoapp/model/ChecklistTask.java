@@ -135,6 +135,37 @@ public class ChecklistTask extends Task {
         return false;
     }
 
+    /**
+     * Synchronizes the checklist items with a new list of text descriptions.
+     * Preserves completion state for existing items with matching text where possible.
+     *
+     * @param newTexts list of sub-item texts
+     */
+    public void syncItems(List<String> newTexts) {
+        if (newTexts == null) {
+            items.clear();
+            checkAndUpdateAutoCompletion();
+            touch();
+            return;
+        }
+        List<ChecklistItem> updated = new ArrayList<>();
+        for (String text : newTexts) {
+            String trimmed = text.trim();
+            Optional<ChecklistItem> match = items.stream()
+                    .filter(i -> i.getText().equalsIgnoreCase(trimmed))
+                    .findFirst();
+            if (match.isPresent()) {
+                updated.add(match.get());
+            } else {
+                updated.add(new ChecklistItem(trimmed));
+            }
+        }
+        items.clear();
+        items.addAll(updated);
+        checkAndUpdateAutoCompletion();
+        touch();
+    }
+
     private void checkAndUpdateAutoCompletion() {
         if (items.isEmpty()) {
             return;
