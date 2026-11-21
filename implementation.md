@@ -795,7 +795,7 @@ The executing agent updates this table (Protocol step 6).
 | M03 | Domain model | ✅ | 2026-11-21 | |
 | M04 | Repositories & category service | ✅ | 2026-11-21 | |
 | M05 | Task service (CRUD, priority, pin, undo) | ✅ | 2026-11-21 | |
-| M06 | Query engine: filter, sort, search | ⬜ | | |
+| M06 | Query engine: filter, sort, search | ✅ | 2026-11-21 | |
 | M07 | Persistence (JSON + autosave) | ⬜ | | v0.1.0 |
 | M08 | JavaFX GUI foundation & controller | ⬜ | | |
 | M09 | Task CRUD in the GUI | ⬜ | | v0.2.0 |
