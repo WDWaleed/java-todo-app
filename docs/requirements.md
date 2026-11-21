@@ -288,3 +288,204 @@ The non-functional requirements define the architectural qualities, operational 
 - All JavaFX Scene Graph mutations, dialog displays, and UI control updates execute strictly on the JavaFX Application Thread.
 - Heavy file I/O operations (such as disk serialization) run off the UI thread via a single-threaded background autosave executor.
 - Background error and completion notifications report back to the UI thread using `javafx.application.Platform.runLater`.
+
+
+---
+
+## 8. Detailed Use Cases
+
+### UC-01: Create Task
+- **Primary Actor:** Desktop User
+- **Preconditions:** The application is running and the main view is displayed.
+- **Main Flow:**
+  1. The user clicks the "New Task" button on the toolbar or presses `Ctrl+N`.
+  2. The system displays the Task Editor modal dialog with focus on the Title input field.
+  3. The user enters a task title (1–100 characters).
+  4. The user optionally enters a description (≤2000 characters).
+  5. The user selects a task type (Simple, Checklist, or Deadline).
+     - *If Checklist:* The user enters checklist items in the sub-item field and presses Enter or "Add".
+     - *If Deadline:* The user chooses a due date via the DatePicker control.
+  6. The user selects a Priority (High, Medium, or Low) and an existing Category.
+  7. The user clicks "Save" (or presses Enter in supported fields).
+  8. The system validates the input, constructs a `TaskDraft`, creates the corresponding polymorphic `Task` instance, saves it to the repository, schedules background autosave, refreshes the UI list view, and closes the dialog.
+- **Alternative / Error Flows:**
+  - *3a. Blank Title:* The user attempts to save with an empty or whitespace-only title.
+    - *System Response:* Highlights the title field, displays an inline error message ("Title is required"), consumes the event, and keeps the dialog open with entered data preserved.
+  - *3b. Over-length Title:* The title exceeds 100 characters.
+    - *System Response:* Displays inline error message ("Title must not exceed 100 characters") and keeps the dialog open.
+  - *5a. Missing Due Date for Deadline Task:* The user selects Deadline type but leaves the due date blank.
+    - *System Response:* Displays inline error message ("Due date is required for deadline tasks") and keeps the dialog open.
+  - *7a. Cancellation:* The user clicks "Cancel" or presses `Esc`.
+    - *System Response:* Closes the dialog without creating a task or altering state.
+- **Postconditions:** A new task is added to the repository, displayed in the task list, and written to persistent storage.
+
+### UC-02: View Task Details
+- **Primary Actor:** Desktop User
+- **Preconditions:** At least one task exists in the current view.
+- **Main Flow:**
+  1. The user browses the task list and locates the desired task card.
+  2. The card displays summary information: title, priority stripe, category chip, pin badge, and polymorphic status summary (summary text, checklist ratio progress, or deadline string).
+  3. The user double-clicks the task card or presses `Enter`/`F2`.
+  4. The system opens the Task Editor dialog pre-populated with all saved details in inspection/edit mode.
+- **Alternative / Error Flows:**
+  - *1a. Deleted Task Concurrency:* The user attempts to open a task that was recently deleted in a background flow.
+    - *System Response:* Notifies the user via status bar and refreshes the list view.
+- **Postconditions:** The user has reviewed all task details; no state is mutated.
+
+### UC-03: Edit Task
+- **Primary Actor:** Desktop User
+- **Preconditions:** The target task exists in the repository.
+- **Main Flow:**
+  1. The user selects a task and triggers edit mode (double-click, right-click context menu "Edit", or `F2`).
+  2. The system presents the Task Editor dialog with current values populated. (The `TaskType` selector is disabled).
+  3. The user modifies editable fields (title, description, priority, category, deadline date, or checklist items).
+  4. The user clicks "Save".
+  5. The system validates the modified fields, applies the changes in place via `TaskFactory.apply`, updates `updatedAt`, triggers change listeners, schedules autosave, and refreshes the view.
+- **Alternative / Error Flows:**
+  - *3a. Invalid Input:* Input fails validation checks (empty title, missing date, over-length).
+    - *System Response:* Displays inline error message and keeps dialog open.
+  - *4a. Cancel Edit:* User clicks "Cancel" or presses `Esc`.
+    - *System Response:* Closes dialog; original task attributes remain unchanged.
+- **Postconditions:** Task state is updated in memory and scheduled for persistent storage.
+
+### UC-04: Delete Task & Undo
+- **Primary Actor:** Desktop User
+- **Preconditions:** A task is selected in the list view.
+- **Main Flow:**
+  1. The user initiates deletion (clicks "Delete" in context menu or presses the `Delete` key).
+  2. The system displays a confirmation dialog: "Are you sure you want to delete '[Task Title]'? This action can be undone."
+  3. The user confirms deletion.
+  4. The system removes the task from the repository, stores a copy in the single-slot undo buffer, triggers change listeners, and refreshes the list.
+  5. The status bar displays an information banner: "Task deleted — Undo" with an active Undo button.
+- **Alternative / Error Flows:**
+  - *3a. User Cancels:* The user clicks "Cancel" in the confirmation dialog.
+    - *System Response:* Dialog closes; task remains in list.
+  - *5a. User Triggers Undo:* Within the active session, the user clicks "Undo" or presses `Ctrl+Z`.
+    - *System Response:* The system restores the task from the undo buffer into the repository with original UUID and attributes, clears the undo buffer, refreshes the view, and notifies via status bar ("Task restored").
+- **Postconditions:** The task is removed from active storage (or subsequently restored if undo is triggered).
+
+### UC-05: Prioritize Task
+- **Primary Actor:** Desktop User
+- **Preconditions:** Target task exists in the view.
+- **Main Flow:**
+  1. The user right-clicks a task card to open the context menu.
+  2. The user navigates to the "Priority" sub-menu and selects "High", "Medium", or "Low".
+  3. The system updates the task's priority attribute, sets `updatedAt` to now, notifies change listeners, updates the card's priority stripe immediately, and triggers autosave.
+- **Alternative / Error Flows:**
+  - *None:* Selecting an already active priority acts as a no-op.
+- **Postconditions:** The task's priority reflects the new selection and displays the corresponding color badge.
+
+### UC-06: Manage Categories
+- **Primary Actor:** Desktop User
+- **Preconditions:** The application is running.
+- **Main Flow:**
+  1. **Add Category:** User clicks "＋" in the Category sidebar. CategoryDialog appears. User enters a name (1–30 characters) and selects a color swatch. Clicking "Save" registers the category and updates the sidebar.
+  2. **Rename / Recolor:** User selects a custom category and clicks "Edit Category". User adjusts name or color. Clicking "Save" updates all task cards displaying this category.
+  3. **Delete Category:** User selects a custom category and clicks "Delete". The system displays confirmation: "Delete category '[Name]'? All tasks in this category will move to General." Upon confirmation, all associated tasks have their `categoryId` changed to `Category.DEFAULT_ID`, the category is deleted from the repository, and the view refreshes.
+- **Alternative / Error Flows:**
+  - *1a. Duplicate Name:* User enters a name that matches an existing category (case-insensitive).
+    - *System Response:* Displays inline error ("A category named '[Name]' already exists") and keeps dialog open.
+  - *2a. Modify Default Category:* User selects "General".
+    - *System Response:* Delete and Rename buttons are disabled (color change only is permitted).
+- **Postconditions:** Categories are updated; tasks maintain referential integrity without orphan states.
+
+### UC-07: Filter, Sort & Search Tasks
+- **Primary Actor:** Desktop User
+- **Preconditions:** The application is running with tasks loaded.
+- **Main Flow:**
+  1. **Filter by Category:** User clicks a category in the sidebar (or "All"). The list updates to display only matching tasks.
+  2. **Filter by Status:** User selects "All", "Active", or "Completed" from the status combo box.
+  3. **Filter by Priority:** User selects "Any", "High", "Medium", or "Low" from the priority combo box.
+  4. **Sort:** User selects sort criterion (Priority, Due Date, Creation Date, or Title) and toggles Ascending/Descending. The list immediately rearranges, keeping pinned tasks at the very top.
+  5. **Search:** User types into the search box. Within ~200 ms debounce, the list filters in real time matching text in either title or description.
+  6. **Clear Filters:** User clicks "Clear Filters" or search clear button ("✕"). All filter criteria reset to default ("All", "All Status", "Any Priority", empty search).
+- **Alternative / Error Flows:**
+  - *No Matches:* Filter/search combinations yield zero results.
+    - *System Response:* Displays placeholder message: "No tasks match your filters".
+- **Postconditions:** The view displays only tasks satisfying the composed predicates in the requested order.
+
+---
+
+## 9. Acceptance Criteria (Given / When / Then)
+
+Acceptance criteria are specified for all **Must** requirements (`FR-01` through `FR-09`, `FR-13`, `FR-17`):
+
+### Scenario 1: Create Simple Task (FR-01, FR-17)
+- **Given:** The user has the Task Editor open.
+- **When:** The user enters title "Review pull request #42", priority "High", category "General", and clicks "Save".
+- **Then:** The task is created, appears in the task list with a red priority stripe, and is scheduled for persistence.
+
+### Scenario 2: Reject Blank Title (FR-01, FR-17)
+- **Given:** The user has the Task Editor open.
+- **When:** The user leaves the title blank or types only whitespace and clicks "Save".
+- **Then:** An error message "Title is required" is shown, the dialog remains open, and no task is created.
+
+### Scenario 3: Reject Over-length Title (FR-01, FR-17)
+- **Given:** The user has the Task Editor open.
+- **When:** The user enters a title containing 101 characters and clicks "Save".
+- **Then:** An error message "Title must not exceed 100 characters" is shown, the dialog remains open, and no task is created.
+
+### Scenario 4: Read Task Details (FR-02)
+- **Given:** A task titled "Prepare CS502 Presentation" exists in the repository.
+- **When:** The user double-clicks the task in the list view.
+- **Then:** The Task Editor dialog opens with all fields matching the task's stored title, description, priority, and category.
+
+### Scenario 5: Update Existing Task (FR-03)
+- **Given:** An existing task with title "Draft Report" and priority "Medium".
+- **When:** The user changes the title to "Draft Final Project Report", priority to "High", and clicks "Save".
+- **Then:** The task card immediately reflects the new title and red priority stripe, and `updatedAt` is refreshed.
+
+### Scenario 6: Delete Task with Confirmation (FR-04)
+- **Given:** An existing task selected in the task list.
+- **When:** The user presses the `Delete` key and clicks "Confirm" in the confirmation prompt.
+- **Then:** The task is removed from the task list and placed into the undo buffer.
+
+### Scenario 7: Cancel Task Deletion (FR-04)
+- **Given:** An existing task selected in the task list.
+- **When:** The user presses the `Delete` key and clicks "Cancel" in the confirmation prompt.
+- **Then:** The dialog closes and the task remains unaffected in the task list.
+
+### Scenario 8: Toggle Task Completion (FR-05)
+- **Given:** An active task in the task list.
+- **When:** The user clicks the checkbox on the task card.
+- **Then:** The task is marked completed, title displays strikethrough styling, and active task count decrements by 1.
+
+### Scenario 9: Quick Priority Change (FR-06)
+- **Given:** A task with "Low" priority (green stripe).
+- **When:** The user right-clicks the card and selects Priority -> High.
+- **Then:** The task priority updates to High, and the indicator stripe turns red immediately.
+
+### Scenario 10: Sort with Pinned Invariant (FR-07, FR-14)
+- **Given:** Three tasks exist: Task A (unpinned, title "Alpha"), Task B (pinned, title "Zeta"), Task C (unpinned, title "Beta").
+- **When:** The user sorts by Title in ascending order.
+- **Then:** Task B (pinned) appears first, followed by Task A, then Task C.
+
+### Scenario 11: Delete Category Reassigns Tasks (FR-08)
+- **Given:** A custom category "Work" contains 3 tasks, and the default "General" category exists.
+- **When:** The user deletes the "Work" category and confirms the action.
+- **Then:** The "Work" category is removed, and all 3 tasks are now assigned to the "General" category.
+
+### Scenario 12: Reject Duplicate Category Name (FR-08, FR-17)
+- **Given:** A category named "Urgent" exists.
+- **When:** The user attempts to create a new category named "urgent" (different case).
+- **Then:** A validation error "A category named 'urgent' already exists" is displayed, and the category is not created.
+
+### Scenario 13: Multi-Criteria Filter Combination (FR-09)
+- **Given:** 5 tasks across categories "General" and "Study", with mixed priorities and completion states.
+- **When:** The user selects category "Study", status "Active", and priority "High".
+- **Then:** Only tasks that are both in "Study", active, AND High priority are displayed.
+
+### Scenario 14: Data Persistence Round-Trip (FR-13, NFR-03)
+- **Given:** The application has created tasks and custom categories and been closed.
+- **When:** The application is restarted with the same data file path.
+- **Then:** All tasks, categories, completion states, and checklist items are restored exactly as saved.
+
+---
+
+## 10. Assumptions & Constraints
+
+- **Single User & Local Execution:** The application is designed as a standalone personal desktop utility with single-process, single-user access to a local JSON data file.
+- **Platform Independence:** The software must run on standard 64-bit desktop operating systems (Windows 10/11, macOS 12+, Ubuntu Linux 20.04+) with JDK 17+ installed.
+- **JavaFX 21 LTS Runtime:** JavaFX controls and graphics are resolved via Maven dependencies, requiring no separate platform SDK installation.
+- **File System Permissions:** The application assumes read and write permissions to the user directory (`~/.todoapp/` or user-specified path).
+- **Display Environment:** The GUI requires an active graphical window manager/display environment to launch (headless execution is supported for domain/service tests and graceful exit on headless startup).
