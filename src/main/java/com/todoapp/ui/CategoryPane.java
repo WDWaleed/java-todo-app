@@ -84,7 +84,7 @@ public class CategoryPane extends VBox {
 
                     Label nameLabel = new Label(item.name());
                     Region spacer = new Region();
-                    HBox.setHgrow(spacer, FxPriority.ALWAYS);
+                    HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
 
                     Label countLabel = new Label(String.valueOf(item.count()));
                     countLabel.getStyleClass().add("task-summary");
