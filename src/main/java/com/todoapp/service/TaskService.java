@@ -1,6 +1,7 @@
 package com.todoapp.service;
 
 import com.todoapp.model.Category;
+import com.todoapp.model.Priority;
 import com.todoapp.model.Task;
 import com.todoapp.model.TaskDraft;
 import com.todoapp.model.TaskFactory;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
