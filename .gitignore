@@ -1,0 +1,28 @@
+# Build output
+target/
+out/
+bin/
+
+# IDE and Editor files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# User and runtime data
+data.json
+*.json.tmp
+*.json.corrupt-*
+.todoapp/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
