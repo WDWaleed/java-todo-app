@@ -792,7 +792,7 @@ The executing agent updates this table (Protocol step 6).
 | M00 | Repository & project scaffolding | ✅ | 2026-11-21 | |
 | M01 | Requirements specification | ✅ | 2026-11-21 | |
 | M02 | Architecture & detailed design | ✅ | 2026-11-21 | |
-| M03 | Domain model | ⬜ | | |
+| M03 | Domain model | ✅ | 2026-11-21 | |
 | M04 | Repositories & category service | ⬜ | | |
 | M05 | Task service (CRUD, priority, pin, undo) | ⬜ | | |
 | M06 | Query engine: filter, sort, search | ⬜ | | |
