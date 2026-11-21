@@ -725,3 +725,243 @@ stateDiagram-v2
 5. **Item Addition / Removal:**
    - Adding an item with `done = false` to a previously completed task transitions the task back to `completed = false`.
    - Removing the only remaining incomplete item from an otherwise finished checklist automatically transitions the parent task to `completed = true`.
+
+
+---
+
+## 9. Persistent Storage & JSON Schema
+
+The storage subsystem preserves application data in a human-readable JSON format. The mapper uses a `"type"` discriminator string (`"SIMPLE"`, `"CHECKLIST"`, `"DEADLINE"`) to achieve polymorphic serialization and deserialization without requiring runtime reflection or complex third-party type adapters.
+
+### 9.1 Complete JSON Data File Example
+
+```json
+{
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "General",
+      "colorHex": "#757575"
+    },
+    {
+      "id": "e3b0c442-98fc-1c14-9afb-4c729938e21a",
+      "name": "Academics",
+      "colorHex": "#1976D2"
+    },
+    {
+      "id": "6c84fb90-12c4-11e1-840d-7b25c5ee775a",
+      "name": "Personal",
+      "colorHex": "#388E3C"
+    }
+  ],
+  "tasks": [
+    {
+      "type": "SIMPLE",
+      "id": "c7a8b090-12c4-11e1-840d-7b25c5ee775b",
+      "title": "Review JavaFX Scene Graph architecture",
+      "description": "Examine Node hierarchy, layout panes, and thread dispatch rules.",
+      "priority": "HIGH",
+      "categoryId": "e3b0c442-98fc-1c14-9afb-4c729938e21a",
+      "completed": false,
+      "pinned": true,
+      "createdAt": "2026-11-20T10:15:30",
+      "updatedAt": "2026-11-20T11:45:00"
+    },
+    {
+      "type": "CHECKLIST",
+      "id": "d8b9c101-23d5-22f2-951e-8c36d6ff886c",
+      "title": "Software Construction Lab Deliverables",
+      "description": "Complete all milestones for Open-Ended Lab submission.",
+      "priority": "MEDIUM",
+      "categoryId": "e3b0c442-98fc-1c14-9afb-4c729938e21a",
+      "completed": false,
+      "pinned": false,
+      "createdAt": "2026-11-20T12:00:00",
+      "updatedAt": "2026-11-21T08:00:00",
+      "items": [
+        {
+          "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+          "text": "M00 - Repository and project scaffolding",
+          "done": true
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+          "text": "M01 - Formal software requirements specification",
+          "done": true
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+          "text": "M02 - Architecture and detailed design",
+          "done": false
+        }
+      ]
+    },
+    {
+      "type": "DEADLINE",
+      "id": "e9c0d212-34e6-33a3-a62f-9d47e7aa997d",
+      "title": "Submit Final Project Report",
+      "description": "Ensure report.md includes all test evidence and code references.",
+      "priority": "HIGH",
+      "categoryId": "e3b0c442-98fc-1c14-9afb-4c729938e21a",
+      "completed": false,
+      "pinned": true,
+      "createdAt": "2026-11-20T14:30:00",
+      "updatedAt": "2026-11-20T14:30:00",
+      "dueDate": "2026-11-25"
+    }
+  ]
+}
+```
+
+### 9.2 Persistence Safety Rules
+1. **Atomic File Replacement:** The file save operation writes data to a temporary file (`data.json.tmp`) located in the same directory. Upon successful completion of the write and flush, `Files.move(..., StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)` replaces the production file. If atomic move is unsupported by the host filesystem, it falls back to standard replace.
+2. **Corruption Quarantine:** If reading `data.json` fails due to syntax corruption, the file is renamed to `data.json.corrupt-<yyyyMMddHHmmss>`. An empty `AppData` structure with the default "General" category is returned, and an alert is shown on startup, preventing application crashes.
+3. **Unknown Discriminator Handling:** If an unrecognized `type` discriminator is encountered during deserialization, that individual task entry is safely skipped with a warning logged to `lastLoadWarning` without aborting the load of remaining valid tasks.
+
+---
+
+## 10. User Interface Wireframes
+
+### 10.1 Main Window Layout
+
+```
++----------------------------------------------------------------------------------------------------+
+|  TODO App                                                                               _  []  X  |
++----------------------------------------------------------------------------------------------------+
+| [ File ] [ Edit ] [ View ] [ Help ]                                                                |
++----------------------------------------------------------------------------------------------------+
+| [+ New Task]  [ Search tasks...           [X]]  Sort: [ Priority v ] [^]  Status: [ All v ] [Filter] |
++-----------------------+----------------------------------------------------------------------------+
+| CATEGORIES            | TASK LIST                                                                  |
+|                       |                                                                            |
+| [All Tasks        (8)]| +------------------------------------------------------------------------+ |
+| [General          (2)]| | [!] [*] [ ] Review JavaFX Scene Graph architecture           [Academics] | |
+| [Academics        (4)]| |             Examine Node hierarchy, layout panes, and dispatch rules.  | |
+| [Personal         (2)]| +------------------------------------------------------------------------+ |
+|                       | +------------------------------------------------------------------------+ |
+|                       | | [!] [*] [ ] Submit Final Project Report                      [Academics] | |
+|                       | |             Due Wed, 25 Nov (Due soon)                                 | |
+|                       | +------------------------------------------------------------------------+ |
+|                       | +------------------------------------------------------------------------+ |
+|                       | | [ ] [ ] [ ] Software Construction Lab Deliverables           [Academics] | |
+|                       | |             [====--------] 2/3 done                                    | |
+|                       | +------------------------------------------------------------------------+ |
+|                       | +------------------------------------------------------------------------+ |
+|                       | | [ ] [ ] [X] Weekly Grocery Shopping                           [Personal] | |
+|                       | |             Apples, milk, bread, eggs.                                 | |
+|                       | +------------------------------------------------------------------------+ |
+|                       |                                                                            |
+| [+ Category] [Rename] |                                                                            |
++-----------------------+----------------------------------------------------------------------------+
+| 8 tasks (6 active, 2 completed)                                              [Task deleted — Undo] |
++----------------------------------------------------------------------------------------------------+
+```
+
+### 10.2 Task Editor Dialog (Variant 1: Simple Task)
+
+```
++-------------------------------------------------------------+
+| Task Details (Simple Task)                           _ [X] |
++-------------------------------------------------------------+
+| Task Type:     (o) Simple    ( ) Checklist    ( ) Deadline  |
+|                                                             |
+| Title:         [ Review JavaFX Scene Graph architecture   ] |
+|                                                             |
+| Description:   +------------------------------------------+ |
+|                | Examine Node hierarchy, layout panes,    | |
+|                | and thread dispatch rules.               | |
+|                +------------------------------------------+ |
+|                                                             |
+| Priority:      [ High (Red)           v ]                   |
+| Category:      [ Academics            v ]                   |
+|                                                             |
+| [Error Message Label: invisible when valid]                 |
++-------------------------------------------------------------+
+|                                        [ Cancel ]  [ Save ] |
++-------------------------------------------------------------+
+```
+
+### 10.3 Task Editor Dialog (Variant 2: Checklist Task)
+
+```
++-------------------------------------------------------------+
+| Task Details (Checklist Task)                        _ [X] |
++-------------------------------------------------------------+
+| Task Type:     ( ) Simple    (o) Checklist    ( ) Deadline  |
+|                                                             |
+| Title:         [ Software Construction Lab Deliverables   ] |
+|                                                             |
+| Description:   [ Complete all milestones for OEL.         ] |
+|                                                             |
+| Priority:      [ Medium (Amber)       v ]                   |
+| Category:      [ Academics            v ]                   |
+|                                                             |
+| Checklist:     +------------------------------------------+ |
+|                | [X] M00 - Repository and scaffolding     | |
+|                | [X] M01 - Software requirements spec     | |
+|                | [ ] M02 - Architecture & design          | |
+|                +------------------------------------------+ |
+| Add Item:      [ Enter sub-item text...        ] [+ Add]    |
+|                                              [- Remove Sel] |
++-------------------------------------------------------------+
+|                                        [ Cancel ]  [ Save ] |
++-------------------------------------------------------------+
+```
+
+### 10.4 Task Editor Dialog (Variant 3: Deadline Task)
+
+```
++-------------------------------------------------------------+
+| Task Details (Deadline Task)                         _ [X] |
++-------------------------------------------------------------+
+| Task Type:     ( ) Simple    ( ) Checklist    (o) Deadline  |
+|                                                             |
+| Title:         [ Submit Final Project Report              ] |
+|                                                             |
+| Description:   [ Include all test evidence and traces.    ] |
+|                                                             |
+| Priority:      [ High (Red)           v ]                   |
+| Category:      [ Academics            v ]                   |
+|                                                             |
+| Due Date:      [ 2026-11-25                 [Calendar Icon] ] |
+|                                                             |
+| [Error Message Label: invisible when valid]                 |
++-------------------------------------------------------------+
+|                                        [ Cancel ]  [ Save ] |
++-------------------------------------------------------------+
+```
+
+### 10.5 Category Management Dialog
+
+```
++-------------------------------------------------------------+
+| Category Details                                     _ [X] |
++-------------------------------------------------------------+
+| Name:          [ Academics                                ] |
+|                                                             |
+| Color Palette:                                              |
+|  (*) [#1976D2 Blue  ]   ( ) [#388E3C Green ]                |
+|  ( ) [#D32F2F Red   ]   ( ) [#F57C00 Orange]                |
+|  ( ) [#7B1FA2 Purple]   ( ) [#00796B Teal  ]                |
+|  ( ) [#455A64 Slate ]   ( ) [#616161 Grey  ]                |
+|                                                             |
+| [Error Message Label: "A category named 'X' already exists"]|
++-------------------------------------------------------------+
+|                                        [ Cancel ]  [ Save ] |
++-------------------------------------------------------------+
+```
+
+---
+
+## 11. Design Decisions & Trade-Off Analysis
+
+| Architectural Decision | Chosen Alternative | Alternatives Considered | Rationale & Trade-Off Analysis |
+|---|---|---|---|
+| **GUI Framework** | **JavaFX 21 (LTS)** | Swing, SWT, JavaFX 17 | Chosen per project requirements. Provides modern scene-graph rendering, built-in CSS styling, high-DPI scaling, and rich controls (`ListView`, `DatePicker`, `Dialog`). Retrieved directly via Maven Central without requiring a local SDK installation. |
+| **GUI Construction Style** | **Pure Java Code** | FXML + `FXMLLoader` | Building views programmatically in Java keeps the build lightweight, avoids XML parsing overhead, eliminates reflection issues, enables strong compile-time type safety, and makes Git diffs clean and easy to review. |
+| **Data Storage Format** | **Atomic JSON (Gson)** | Java Native Serialization, SQLite / H2 | JSON provides human readability, debuggability, zero native library dependencies, and seamless portability across operating systems. Atomic write-and-replace prevents file corruption. |
+| **Entity Immutability Boundary** | **Defensive Copying via `copy()`** | Shared mutable references, Read-only proxy wrappers | Service methods return cloned copies of domain entities. This strictly prevents UI components from bypassing business logic by directly mutating repository state. Updates require submitting a validated `TaskDraft`. |
+| **Git Workflow** | **Single `main` Linear Branch** | GitFlow, feature branches with PR merges | Tailored for the solo developer workflow of the lab project. Eliminates merge commits, avoids branch synchronization overhead, and guarantees a simple, chronological, bisectable Git history. |
+| **Module System Configuration** | **Classpath Project (No `module-info.java`)** | Java Platform Module System (JPMS) | Avoids JPMS complexity with third-party libraries (Gson, JUnit) while `javafx-maven-plugin` handles JavaFX module-path configuration automatically during launch. |
+| **Launcher Separation** | **Distinct `Launcher` Entry Class** | Launching directly from `App extends Application` | JavaFX requires that executable fat/shaded JARs do not have a main class extending `Application`, or the JVM throws `Missing JavaFX runtime components`. The separate `Launcher.java` resolves this cleanly. |
