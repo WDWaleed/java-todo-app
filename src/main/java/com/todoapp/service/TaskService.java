@@ -150,6 +150,124 @@ public class TaskService {
         return existing.copy();
     }
 
+    /**
+     * Deletes a task by ID, placing a deep copy into the single-slot undo buffer.
+     *
+     * @param id task UUID to delete
+     * @return deep copy of the deleted task
+     * @throws NotFoundException if task does not exist
+     */
+    public Task delete(UUID id) {
+        if (id == null) {
+            throw new NotFoundException("Task ID must not be null");
+        }
+        Task deleted = taskRepo.deleteById(id)
+                .orElseThrow(() -> new NotFoundException("Task not found with ID: " + id));
+
+        this.undoBuffer = deleted.copy();
+        notifyListeners(ChangeType.DELETED, id);
+        return deleted.copy();
+    }
+
+    /**
+     * Restores the task currently stored in the undo buffer into the repository.
+     * The undo buffer is cleared once restored.
+     *
+     * @return Optional containing the restored task, or empty if undo buffer is vacant
+     */
+    public Optional<Task> undoDelete() {
+        if (undoBuffer == null) {
+            return Optional.empty();
+        }
+        Task toRestore = undoBuffer.copy();
+        undoBuffer = null;
+
+        toRestore.touch(LocalDateTime.now(clock));
+        taskRepo.save(toRestore);
+
+        notifyListeners(ChangeType.RESTORED, toRestore.getId());
+        return Optional.of(toRestore.copy());
+    }
+
+    /**
+     * Directly restores a task instance (e.g. for undo workflows).
+     *
+     * @param task task to restore
+     * @return deep copy of the restored task
+     */
+    public Task restore(Task task) {
+        Objects.requireNonNull(task, "Task to restore must not be null");
+        Task copy = task.copy();
+        copy.touch(LocalDateTime.now(clock));
+        taskRepo.save(copy);
+        notifyListeners(ChangeType.RESTORED, copy.getId());
+        return copy.copy();
+    }
+
+    /**
+     * Toggles the completion state of a task.
+     *
+     * @param id target task UUID
+     * @return deep copy of the modified task
+     * @throws NotFoundException if task does not exist
+     */
+    public Task toggleComplete(UUID id) {
+        Task task = getEntity(id);
+        task.setCompleted(!task.isCompleted());
+        task.touch(LocalDateTime.now(clock));
+        taskRepo.save(task);
+
+        notifyListeners(ChangeType.UPDATED, id);
+        return task.copy();
+    }
+
+    /**
+     * Updates the priority level of a task.
+     *
+     * @param id       target task UUID
+     * @param priority non-null priority level
+     * @return deep copy of the modified task
+     * @throws ValidationException if priority is null
+     * @throws NotFoundException   if task does not exist
+     */
+    public Task setPriority(UUID id, Priority priority) {
+        if (priority == null) {
+            throw new ValidationException("Priority must not be null");
+        }
+        Task task = getEntity(id);
+        task.setPriority(priority);
+        task.touch(LocalDateTime.now(clock));
+        taskRepo.save(task);
+
+        notifyListeners(ChangeType.UPDATED, id);
+        return task.copy();
+    }
+
+    /**
+     * Toggles the pinned status of a task.
+     *
+     * @param id target task UUID
+     * @return deep copy of the modified task
+     * @throws NotFoundException if task does not exist
+     */
+    public Task togglePinned(UUID id) {
+        Task task = getEntity(id);
+        task.setPinned(!task.isPinned());
+        task.touch(LocalDateTime.now(clock));
+        taskRepo.save(task);
+
+        notifyListeners(ChangeType.UPDATED, id);
+        return task.copy();
+    }
+
+    private Task getEntity(UUID id) {
+        if (id == null) {
+            throw new NotFoundException("Task ID must not be null");
+        }
+        return taskRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Task not found with ID: " + id));
+    }
+
     // ==========================================
     // Internal Helpers
     // ==========================================
