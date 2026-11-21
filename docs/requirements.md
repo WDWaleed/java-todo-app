@@ -489,3 +489,37 @@ Acceptance criteria are specified for all **Must** requirements (`FR-01` through
 - **JavaFX 21 LTS Runtime:** JavaFX controls and graphics are resolved via Maven dependencies, requiring no separate platform SDK installation.
 - **File System Permissions:** The application assumes read and write permissions to the user directory (`~/.todoapp/` or user-specified path).
 - **Display Environment:** The GUI requires an active graphical window manager/display environment to launch (headless execution is supported for domain/service tests and graceful exit on headless startup).
+
+
+---
+
+## 11. Requirements Traceability Matrix
+
+The traceability matrix establishes bi-directional alignment between requirements, development milestones, implementing classes, and automated verification suites. The Milestone column is populated below; implementing classes and test suites will be reconciled upon release in milestone M13.
+
+| Requirement | Milestone(s) | Class(es) [M13] | Test(s) [M13] |
+|---|---|---|---|
+| **FR-01** (Create task) | M03, M05, M08, M09 | *Pending M13* | *Pending M13* |
+| **FR-02** (Read task) | M03, M05, M08, M09 | *Pending M13* | *Pending M13* |
+| **FR-03** (Update task) | M03, M05, M09 | *Pending M13* | *Pending M13* |
+| **FR-04** (Delete task) | M05, M09 | *Pending M13* | *Pending M13* |
+| **FR-05** (Mark complete / incomplete) | M03, M05, M09 | *Pending M13* | *Pending M13* |
+| **FR-06** (Prioritize) | M03, M05, M08, M09 | *Pending M13* | *Pending M13* |
+| **FR-07** (Sort) | M06, M08, M10 | *Pending M13* | *Pending M13* |
+| **FR-08** (Categories) | M03, M04, M10 | *Pending M13* | *Pending M13* |
+| **FR-09** (Filter) | M06, M08, M10 | *Pending M13* | *Pending M13* |
+| **FR-10** (Search) | M06, M08, M10 | *Pending M13* | *Pending M13* |
+| **FR-11** (Checklist tasks) | M03, M07, M09 | *Pending M13* | *Pending M13* |
+| **FR-12** (Deadline tasks) | M03, M07, M09, M11 | *Pending M13* | *Pending M13* |
+| **FR-13** (Persistence) | M07, M08 | *Pending M13* | *Pending M13* |
+| **FR-14** (Pin task) | M03, M05, M06, M10 | *Pending M13* | *Pending M13* |
+| **FR-15** (Undo delete) | M05, M11 | *Pending M13* | *Pending M13* |
+| **FR-16** (Keyboard shortcuts) | M11 | *Pending M13* | *Pending M13* |
+| **FR-17** (Validation) | M03, M04, M05, M09, M10 | *Pending M13* | *Pending M13* |
+| **NFR-01** (Usability) | M08, M09, M10, M11 | *Pending M13* | *Pending M13* |
+| **NFR-02** (Performance) | M06, M12 | *Pending M13* | *Pending M13* |
+| **NFR-03** (Reliability) | M07, M12 | *Pending M13* | *Pending M13* |
+| **NFR-04** (Portability) | M00, M12, M13 | *Pending M13* | *Pending M13* |
+| **NFR-05** (Maintainability) | M00, M03–M13 | *Pending M13* | *Pending M13* |
+| **NFR-06** (Testability) | M03–M08, M12 | *Pending M13* | *Pending M13* |
+| **NFR-07** (Threading) | M07, M08, M11, M12 | *Pending M13* | *Pending M13* |
