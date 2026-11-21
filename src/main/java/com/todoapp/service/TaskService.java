@@ -59,6 +59,28 @@ public class TaskService {
     }
 
     /**
+     * Registers a listener for task mutation events.
+     *
+     * @param listener observer to register
+     */
+    public void addListener(TaskChangeListener listener) {
+        if (listener != null) {
+            listeners.add(listener);
+        }
+    }
+
+    /**
+     * Unregisters a previously registered listener.
+     *
+     * @param listener observer to remove
+     */
+    public void removeListener(TaskChangeListener listener) {
+        if (listener != null) {
+            listeners.remove(listener);
+        }
+    }
+
+    /**
      * Creates and persists a new task based on the provided draft.
      *
      * @param draft validated task draft
