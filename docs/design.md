@@ -499,3 +499,229 @@ The application design exemplifies core object-oriented principles, as required 
 | **Strategy** | Parameterizes sorting algorithms | `SortOption` enum defines interchangeable sorting strategies (`PRIORITY`, `DUE_DATE`, `CREATED`, `TITLE`), each providing its own `Comparator<Task>`. |
 | **Model-View-Controller (MVC)** | Separates UI presentation, state, and domain logic | `MainView` (View) captures user gestures and forwards them to `MainController` (Controller), which coordinates `TaskService` (Model) and updates `ViewState`. |
 | **Data Mapper** | Decouples domain entities from storage formats | `JsonMapper` converts between `Task`/`Category` domain models and Gson `JsonObject` trees using an explicit `"type"` discriminator attribute. |
+
+
+---
+
+## 7. Dynamic Behavior & Sequence Diagrams
+
+### 7.1 Sequence Diagram: Create Task (Add Flow)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as MainView
+    participant Dialog as TaskEditorDialog
+    participant Ctrl as MainController
+    participant Svc as TaskService
+    participant Factory as TaskFactory
+    participant Repo as TaskRepository
+    participant Auto as AutosaveListener
+
+    User->>View: Click "New Task" (or Ctrl+N)
+    View->>Dialog: Open dialog(mode=CREATE)
+    User->>Dialog: Fill fields & click "Save"
+    Dialog->>Dialog: draft = new TaskDraft(...)
+    Dialog->>Ctrl: onCreateTask(draft)
+    Ctrl->>Svc: create(draft)
+    Svc->>Dialog: draft.validate()
+    Svc->>Factory: TaskFactory.create(draft)
+    Factory-->>Svc: new Task instance
+    Svc->>Repo: save(task)
+    Repo-->>Svc: savedTask
+    Svc->>Auto: onTasksChanged(CREATED, taskId)
+    Auto-->>Auto: Schedule debounced write (300ms)
+    Svc-->>Ctrl: copy of savedTask
+    Ctrl->>Ctrl: refresh()
+    Ctrl->>Svc: query(currentQuery)
+    Svc-->>Ctrl: refreshedTaskList
+    Ctrl->>View: onViewChanged(tasks, categories, viewState)
+    View->>View: Update ListView & Status Bar
+    View->>Dialog: close()
+```
+
+### 7.2 Sequence Diagram: Edit Task
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as MainView
+    participant Dialog as TaskEditorDialog
+    participant Ctrl as MainController
+    participant Svc as TaskService
+    participant Factory as TaskFactory
+    participant Repo as TaskRepository
+    participant Auto as AutosaveListener
+
+    User->>View: Double-click task card (or F2)
+    View->>Dialog: Open dialog(mode=EDIT, existingTask)
+    User->>Dialog: Modify fields & click "Save"
+    Dialog->>Dialog: draft = new TaskDraft(...)
+    Dialog->>Ctrl: onUpdateTask(taskId, draft)
+    Ctrl->>Svc: update(taskId, draft)
+    Svc->>Repo: findById(taskId)
+    Repo-->>Svc: existingTask
+    Svc->>Factory: TaskFactory.apply(existingTask, draft)
+    Svc->>Repo: save(existingTask)
+    Repo-->>Svc: updatedTask
+    Svc->>Auto: onTasksChanged(UPDATED, taskId)
+    Auto-->>Auto: Schedule debounced write (300ms)
+    Svc-->>Ctrl: copy of updatedTask
+    Ctrl->>Ctrl: refresh()
+    Ctrl->>View: onViewChanged(tasks, categories, viewState)
+    View->>View: Update TaskCell display
+    View->>Dialog: close()
+```
+
+### 7.3 Sequence Diagram: Delete Task with Undo
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as MainView
+    participant Alert as ConfirmDialog
+    participant Ctrl as MainController
+    participant Svc as TaskService
+    participant Repo as TaskRepository
+    participant Auto as AutosaveListener
+
+    User->>View: Press Delete (or context menu)
+    View->>Alert: Show confirmation prompt
+    User->>Alert: Click "Confirm"
+    Alert-->>View: Confirmed
+    View->>Ctrl: onDeleteTask(taskId)
+    Ctrl->>Svc: delete(taskId)
+    Svc->>Repo: deleteById(taskId)
+    Repo-->>Svc: deletedTask
+    Svc->>Svc: undoBuffer = deletedTask.copy()
+    Svc->>Auto: onTasksChanged(DELETED, taskId)
+    Auto-->>Auto: Schedule debounced write (300ms)
+    Svc-->>Ctrl: deletedTask
+    Ctrl->>Ctrl: refresh()
+    Ctrl->>View: onViewChanged(tasks, categories, viewState)
+    View->>View: Show "Task deleted — Undo" in StatusBar
+
+    opt User clicks Undo (or Ctrl+Z)
+        User->>View: Click "Undo"
+        View->>Ctrl: onUndoDelete()
+        Ctrl->>Svc: undoDelete()
+        Svc->>Repo: save(undoBuffer)
+        Svc->>Svc: undoBuffer = null
+        Svc->>Auto: onTasksChanged(RESTORED, taskId)
+        Svc-->>Ctrl: restoredTask
+        Ctrl->>Ctrl: refresh()
+        Ctrl->>View: onViewChanged(tasks, categories, viewState)
+        View->>View: Task restored in list
+    end
+```
+
+### 7.4 Sequence Diagram: Application Startup
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Launcher
+    participant App
+    participant Config as AppConfig
+    participant Storage as JsonStorage
+    participant RepoT as InMemoryTaskRepo
+    participant RepoC as InMemoryCategoryRepo
+    participant SvcC as CategoryService
+    participant SvcT as TaskService
+    participant Auto as AutosaveListener
+    participant Ctrl as MainController
+    participant View as MainView
+    participant Stage as JavaFX Stage
+
+    Launcher->>App: Application.launch(App.class, args)
+    App->>Config: parse(args, systemProperties)
+    Config-->>App: dataFilePath, seedFlag
+    App->>Storage: new JsonStorage(dataFilePath)
+    App->>Storage: load()
+    Storage-->>App: AppData(categories, tasks)
+    App->>RepoC: new InMemoryCategoryRepository()
+    App->>RepoT: new InMemoryTaskRepository()
+    App->>RepoC: populate(data.categories())
+    App->>RepoT: populate(data.tasks())
+    App->>SvcC: new CategoryService(repoC, repoT)
+    App->>SvcT: new TaskService(repoT, repoC, Clock.systemDefaultZone())
+    App->>Auto: new AutosaveListener(storage, repoT, repoC, executor)
+    App->>SvcT: addListener(auto)
+    App->>SvcC: addListener(auto)
+    App->>Ctrl: new MainController(svcT, svcC)
+    App->>View: new MainView(ctrl)
+    App->>Ctrl: addListener(view)
+    App->>Ctrl: refresh()
+    App->>Stage: setScene(new Scene(view, 800, 600))
+    App->>Stage: show()
+```
+
+### 7.5 Sequence Diagram: Delete Category (Tasks Reassigned)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant View as MainView
+    participant Alert as ConfirmDialog
+    participant Ctrl as MainController
+    participant SvcC as CategoryService
+    participant RepoC as CategoryRepository
+    participant RepoT as TaskRepository
+    participant Auto as AutosaveListener
+
+    User->>View: Select custom category & click "Delete"
+    View->>Alert: "Delete Category? Tasks will move to General."
+    User->>Alert: Confirm
+    View->>Ctrl: onDeleteCategory(categoryId)
+    Ctrl->>SvcC: delete(categoryId)
+    SvcC->>RepoT: findAll()
+    loop For each task where categoryId == targetId
+        SvcC->>RepoT: task.setCategoryId(Category.DEFAULT_ID)
+        SvcC->>RepoT: task.touch()
+        SvcC->>RepoT: save(task)
+    end
+    SvcC->>RepoC: deleteById(categoryId)
+    SvcC->>Auto: onTasksChanged(CATEGORY_CHANGED, categoryId)
+    Auto-->>Auto: Schedule debounced write (300ms)
+    SvcC-->>Ctrl: deletedCategory
+    Ctrl->>Ctrl: onSelectCategory(null) (switch to All)
+    Ctrl->>Ctrl: refresh()
+    Ctrl->>View: onViewChanged(tasks, categories, viewState)
+    View->>View: Update category list and task badges
+```
+
+---
+
+## 8. ChecklistTask State Transitions & Lifecycle
+
+A `ChecklistTask` encapsulates a collection of `ChecklistItem` entities and enforces reactive state invariants governing sub-item completion and parent task completion.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Incomplete: Task Created (0 items or partial items)
+    Incomplete --> Completed: Last unchecked item toggled done
+    Incomplete --> Completed: Parent checkbox clicked (all items marked done)
+    Completed --> Incomplete: Any item unchecked
+    Completed --> Incomplete: New unchecked item added
+    Completed --> Incomplete: Parent checkbox clicked (all items marked undone)
+```
+
+### 8.1 State Invariants
+1. **Completion Ratio Calculation:**
+   $$\text{Progress} = \begin{cases} \frac{\text{Count of items where } \text{done} = \text{true}}{\text{Total items}}, & \text{if } \text{Total items} > 0 \\ 1.0, & \text{if } \text{Total items} = 0 \text{ and } \text{completed} = \text{true} \\ 0.0, & \text{if } \text{Total items} = 0 \text{ and } \text{completed} = \text{false} \end{cases}$$
+2. **Polymorphic Summary:**
+   The `getSummary()` method returns `"X/Y done"` (e.g., `"2/5 done"`), or `"0 items"` if the checklist is empty.
+3. **Sub-Item Toggle Rule:**
+   When an item's status is toggled via `toggleItem(itemId)`:
+   - If every item in the list is now `done == true`, the parent task's `completed` flag is automatically updated to `true`.
+   - If any item in the list is `done == false`, the parent task's `completed` flag is automatically set to `false`.
+4. **Parent Task Direct Completion Rule:**
+   - Calling `setCompleted(true)` automatically iterates through all child items, marking each `done = true`.
+   - Calling `setCompleted(false)` marks all child items `done = false`.
+5. **Item Addition / Removal:**
+   - Adding an item with `done = false` to a previously completed task transitions the task back to `completed = false`.
+   - Removing the only remaining incomplete item from an otherwise finished checklist automatically transitions the parent task to `completed = true`.
