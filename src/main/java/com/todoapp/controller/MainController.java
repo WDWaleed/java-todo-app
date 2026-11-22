@@ -163,6 +163,14 @@ public class MainController {
     }
 
     /**
+     * Resets all search, filtering, and sorting criteria to default values.
+     */
+    public void onClearFilters() {
+        this.currentState = currentState.withQuery(TaskQuery.defaultQuery()).clearMessages();
+        refresh();
+    }
+
+    /**
      * Updates the currently selected task ID in view state and publishes a refresh.
      *
      * @param taskId task UUID, or null if selection is cleared

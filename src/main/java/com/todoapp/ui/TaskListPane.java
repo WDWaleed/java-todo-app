@@ -2,6 +2,8 @@ package com.todoapp.ui;
 
 import com.todoapp.controller.MainController;
 import com.todoapp.model.Task;
+import com.todoapp.service.StatusFilter;
+import com.todoapp.service.TaskQuery;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
@@ -27,6 +29,7 @@ public class TaskListPane extends VBox {
     private final MainController controller;
     private final ObservableList<Task> tasksList = FXCollections.observableArrayList();
     private final ListView<Task> listView = new ListView<>(tasksList);
+    private final Label placeholderLabel = new Label("No tasks yet — click New Task");
 
     /**
      * Constructs a TaskListPane wired to the main controller.
@@ -42,9 +45,8 @@ public class TaskListPane extends VBox {
         listView.getStyleClass().add("task-list-view");
         VBox.setVgrow(listView, javafx.scene.layout.Priority.ALWAYS);
 
-        Label placeholder = new Label("No tasks yet — click New Task");
-        placeholder.getStyleClass().add("placeholder-label");
-        listView.setPlaceholder(placeholder);
+        placeholderLabel.getStyleClass().add("placeholder-label");
+        listView.setPlaceholder(placeholderLabel);
 
         // Use custom polymorphic card cell factory
         listView.setCellFactory(lv -> new TaskCell(controller));
@@ -77,6 +79,18 @@ public class TaskListPane extends VBox {
      * @param tasks non-null list of tasks
      */
     public void setTasks(List<Task> tasks) {
+        setTasks(tasks, controller.getCurrentState().query(), !controller.getTaskService().getAll().isEmpty());
+    }
+
+    /**
+     * Replaces the currently displayed tasks list and updates placeholder text
+     * depending on whether filters are active.
+     *
+     * @param tasks                 non-null list of matching tasks
+     * @param query                 active task query
+     * @param hasAnyTasksInStorage  true if any tasks exist in storage
+     */
+    public void setTasks(List<Task> tasks, TaskQuery query, boolean hasAnyTasksInStorage) {
         UUID selectedId = controller.getCurrentState().selectedTaskId();
         tasksList.setAll(tasks);
         if (selectedId != null) {
@@ -84,6 +98,19 @@ public class TaskListPane extends VBox {
                     .filter(t -> selectedId.equals(t.getId()))
                     .findFirst()
                     .ifPresent(matching -> listView.getSelectionModel().select(matching));
+        }
+
+        boolean hasFilters = (query != null) && (
+                query.categoryId() != null
+                || (query.search() != null && !query.search().isBlank())
+                || query.status() != StatusFilter.ALL
+                || query.priority() != null
+        );
+
+        if (hasFilters || hasAnyTasksInStorage) {
+            placeholderLabel.setText("No tasks match your filters");
+        } else {
+            placeholderLabel.setText("No tasks yet — click New Task");
         }
     }
 

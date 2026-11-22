@@ -58,7 +58,8 @@ public class MainView extends BorderPane implements ViewListener {
     @Override
     public void onViewChanged(List<Task> tasks, List<Category> categories, ViewState state) {
         Runnable updateAction = () -> {
-            taskListPane.setTasks(tasks);
+            toolbar.updateFromQuery(state.query());
+            taskListPane.setTasks(tasks, state.query(), !controller.getTaskService().getAll().isEmpty());
             categoryPane.updateCategories(categories, controller.getTaskService(), state.query().categoryId());
 
             int activeCount = controller.getTaskService().countActive();
