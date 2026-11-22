@@ -142,12 +142,18 @@ public class TaskCell extends ListCell<Task> {
         // Double-click to open edit dialog per M09.3
         setOnMouseClicked(event -> {
             if (event.getClickCount() == 2 && getItem() != null) {
-                openEditDialog(getItem());
+                openEditDialog(controller, getItem());
             }
         });
     }
 
-    private void openEditDialog(Task task) {
+    /**
+     * Opens the task editor dialog pre-populated with the specified task data.
+     *
+     * @param controller non-null main presentation controller
+     * @param task       non-null task to edit
+     */
+    public static void openEditDialog(MainController controller, Task task) {
         if (task == null) return;
         Task current;
         try {
@@ -248,7 +254,7 @@ public class TaskCell extends ListCell<Task> {
         ContextMenu menu = new ContextMenu();
 
         MenuItem editItem = new MenuItem("Edit Task");
-        editItem.setOnAction(e -> openEditDialog(task));
+        editItem.setOnAction(e -> openEditDialog(controller, task));
 
         MenuItem completeItem = new MenuItem(task.isCompleted() ? "Mark Incomplete" : "Mark Complete");
         completeItem.setOnAction(e -> controller.onToggleComplete(task.getId()));

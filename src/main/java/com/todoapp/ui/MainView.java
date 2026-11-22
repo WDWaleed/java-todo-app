@@ -7,6 +7,7 @@ import com.todoapp.model.Category;
 import com.todoapp.model.Task;
 import javafx.application.Platform;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +16,7 @@ import java.util.Objects;
  * Main application window content root implementing {@link ViewListener}.
  * Coordinates layout structure:
  * <ul>
- *     <li>Top: {@link ToolbarPane}</li>
+ *     <li>Top: {@link AppMenuBar} and {@link ToolbarPane}</li>
  *     <li>Left: {@link CategoryPane}</li>
  *     <li>Center: {@link TaskListPane}</li>
  *     <li>Bottom: {@link StatusBar}</li>
@@ -24,6 +25,7 @@ import java.util.Objects;
 public class MainView extends BorderPane implements ViewListener {
 
     private final MainController controller;
+    private final AppMenuBar menuBar;
     private final ToolbarPane toolbar;
     private final CategoryPane categoryPane;
     private final TaskListPane taskListPane;
@@ -38,12 +40,14 @@ public class MainView extends BorderPane implements ViewListener {
     public MainView(MainController controller) {
         this.controller = Objects.requireNonNull(controller, "Controller must not be null");
 
+        this.taskListPane = new TaskListPane(controller);
         this.toolbar = new ToolbarPane(controller);
         this.categoryPane = new CategoryPane(controller);
-        this.taskListPane = new TaskListPane(controller);
         this.statusBar = new StatusBar();
+        this.menuBar = new AppMenuBar(controller, taskListPane::getSelectedTask);
 
-        setTop(toolbar);
+        VBox topContainer = new VBox(menuBar, toolbar);
+        setTop(topContainer);
         setLeft(categoryPane);
         setCenter(taskListPane);
         setBottom(statusBar);
@@ -58,6 +62,7 @@ public class MainView extends BorderPane implements ViewListener {
     @Override
     public void onViewChanged(List<Task> tasks, List<Category> categories, ViewState state) {
         Runnable updateAction = () -> {
+            menuBar.updateState(state, controller.canUndo());
             toolbar.updateFromQuery(state.query());
             taskListPane.setTasks(tasks, state.query(), !controller.getTaskService().getAll().isEmpty());
             categoryPane.updateCategories(categories, controller.getTaskService(), state.query().categoryId());
@@ -78,6 +83,15 @@ public class MainView extends BorderPane implements ViewListener {
         } else {
             Platform.runLater(updateAction);
         }
+    }
+
+    /**
+     * Returns the menu bar component.
+     *
+     * @return AppMenuBar instance
+     */
+    public AppMenuBar getAppMenuBar() {
+        return menuBar;
     }
 
     /**

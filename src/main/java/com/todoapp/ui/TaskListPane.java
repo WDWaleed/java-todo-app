@@ -115,6 +115,15 @@ public class TaskListPane extends VBox {
     }
 
     /**
+     * Returns the currently selected task in the list view, or null if none selected.
+     *
+     * @return selected Task, or null
+     */
+    public Task getSelectedTask() {
+        return listView.getSelectionModel().getSelectedItem();
+    }
+
+    /**
      * Returns the underlying task ListView.
      *
      * @return ListView instance

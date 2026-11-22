@@ -10,6 +10,13 @@
 }
 
 /* --- Toolbar Styling --- */
+.app-menu-bar {
+    -fx-background-color: #ffffff;
+    -fx-padding: 0 4px;
+    -fx-border-color: transparent transparent #f0f0f0 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
 .toolbar-pane {
     -fx-background-color: #ffffff;
     -fx-padding: 10px 16px;
