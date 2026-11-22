@@ -801,7 +801,7 @@ The executing agent updates this table (Protocol step 6).
 | M09 | Task CRUD in the GUI | ✅ | 2026-11-22 | v0.2.0 |
 | M10 | Categories & organization in the GUI | ✅ | 2026-11-22 | v0.3.0 |
 | M11 | Polish & extras | ✅ | 2026-11-22 | |
-| M12 | Testing & hardening | ⬜ | | |
+| M12 | Testing & hardening | ✅ | 2026-11-22 | |
 | M13 | Packaging, documentation & release | ⬜ | | v1.0.0 |
 | M14 | Final project report | ⬜ | | |
 
