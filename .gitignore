@@ -15,6 +15,7 @@ dependency-reduced-pom.xml
 # Logs and temporary files
 *.log
 *.tmp
+~$*
 
 # User and runtime data
 data.json
