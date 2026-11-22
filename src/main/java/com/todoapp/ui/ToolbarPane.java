@@ -45,11 +45,8 @@ public class ToolbarPane extends HBox {
         newTaskButton = new Button("＋ New Task");
         newTaskButton.getStyleClass().add("new-task-button");
         newTaskButton.setOnAction(e -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("New Task");
-            alert.setHeaderText("Coming Soon");
-            alert.setContentText("Task creation dialog will be enabled in milestone M09.");
-            alert.showAndWait();
+            TaskEditorDialog dialog = new TaskEditorDialog(controller);
+            dialog.showAndWait();
         });
 
         // Search Field
