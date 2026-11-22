@@ -97,15 +97,14 @@ public class TaskService {
     public Task create(TaskDraft draft) {
         validateDraft(draft);
 
+        LocalDateTime now = LocalDateTime.now(clock);
         Task task;
         try {
-            task = TaskFactory.create(draft);
+            task = TaskFactory.create(draft, now);
         } catch (IllegalArgumentException ex) {
             throw new ValidationException(ex.getMessage(), ex);
         }
 
-        LocalDateTime now = LocalDateTime.now(clock);
-        task.touch(now);
         taskRepo.save(task);
 
         notifyListeners(ChangeType.CREATED, task.getId());

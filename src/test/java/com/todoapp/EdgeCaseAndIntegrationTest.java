@@ -161,7 +161,31 @@ class EdgeCaseAndIntegrationTest {
     }
 
     // =========================================================================
-    // 4. Toggle complete idempotency
+    // 4. Clock injection — deterministic timestamps
+    // =========================================================================
+
+    @Test
+    @DisplayName("Task createdAt/updatedAt match the injected fixed clock")
+    void testFixedClockTimestamps() {
+        Instant fixedInstant = Instant.parse("2026-06-15T12:00:00Z");
+        Clock c = Clock.fixed(fixedInstant, ZoneId.of("UTC"));
+        TaskService ts = new TaskService(taskRepo, categoryRepo, c);
+
+        TaskDraft draft = TaskDraft.ofSimple("Clock test", "", Priority.MEDIUM, Category.DEFAULT_ID);
+        Task task = ts.create(draft);
+
+        assertEquals(
+                java.time.LocalDateTime.ofInstant(fixedInstant, ZoneId.of("UTC")),
+                task.getCreatedAt()
+        );
+        assertEquals(
+                java.time.LocalDateTime.ofInstant(fixedInstant, ZoneId.of("UTC")),
+                task.getUpdatedAt()
+        );
+    }
+
+    // =========================================================================
+    // 5. Toggle complete idempotency
     // =========================================================================
 
     @Test
