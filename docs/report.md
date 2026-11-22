@@ -908,3 +908,436 @@ The software architecture incorporates five established design patterns:
 | **Git Workflow** | **Single Linear Branch on `main`** | GitFlow, Feature Branches with Pull Requests | Tailored for solo developer efficiency. Eliminates merge commits, avoids branch synchronization overhead, and guarantees a completely linear, bisectable, and auditable Git history. |
 | **Launcher Separation** | **Distinct `Launcher` Entry Class** | Direct launch from `App extends Application` | JavaFX requires that executable shaded fat JARs do not have a main class extending `Application`, or the JVM throws `Missing JavaFX runtime components`. The separate `Launcher.java` resolves this cleanly. |
 | **Autosave Strategy** | **Debounced Background Executor (300 ms)** | Immediate synchronous save, Periodic fixed timer | Immediate synchronous saves would block the UI thread during rapid keystrokes; fixed periodic timers risk losing up to the period duration of edits on crash. A 300 ms debounce triggers persistence immediately after typing stops while maintaining zero UI lag. |
+
+
+---
+
+## 5. Implementation Narrative & Code Highlights
+
+### 5.1 Milestone-by-Milestone Narrative
+The software construction was executed in an iterative, test-driven sequence across 14 distinct milestones:
+
+- **M00 — Project Scaffolding:** Established the Maven build foundation, configured Java 17 and JavaFX 21 dependencies, created `.gitignore`, initialized the single-branch Git repository, and created the `Launcher` decoupling class.
+- **M01 — Requirements Analysis:** Formulated comprehensive functional (FR-01..17) and non-functional (NFR-01..07) requirements, 14 detailed user scenarios, 8 use cases, and the initial traceability matrix.
+- **M02 — Architecture & Detailed Design:** Designed the layered MVC architecture, documented the UML class model, formalized state transition rules for checklist tasks, and specified the JSON storage schema.
+- **M03 — Domain Model:** Implemented the core polymorphic entity hierarchy (`Task`, `SimpleTask`, `ChecklistTask`, `DeadlineTask`, `Category`, `Priority`, `TaskDraft`, and `TaskFactory`), with 100% unit test coverage for copy semantics and validation rules.
+- **M04 — Repositories & Category Service:** Built repository abstractions backed by deterministic in-memory `LinkedHashMap` stores; implemented `CategoryService` with case-insensitive name uniqueness and zero-orphan deletion reassignment.
+- **M05 — Task Service Core:** Implemented complete task CRUD operations, single-slot undo buffer, defensive copying, and observer mutation notifications (`TaskChangeListener`).
+- **M06 — Query Engine:** Implemented multi-criteria filtering (category, status, priority), real-time text search, and the composite `Comparator` chain enforcing the pinned-to-top invariant.
+- **M07 — Persistence Layer (Tag `v0.1.0`):** Engineered atomic file writing (`JsonStorage`), Gson polymorphic serialization (`JsonMapper`), and the background debounced autosave listener (`AutosaveListener`).
+- **M08 — JavaFX GUI Foundation:** Constructed the pure Java presentation shell: `MainView`, `ToolbarPane`, `CategoryPane`, `TaskListPane`, `StatusBar`, and `Theme`, orchestrated by `MainController`.
+- **M09 — Task CRUD in the GUI (Tag `v0.2.0`):** Created the modal `TaskEditorDialog`, custom polymorphic `TaskCell` card views, deletion confirmation alerts, and context menus.
+- **M10 — Categories & Filtering in GUI (Tag `v0.3.0`):** Added the `CategoryDialog`, dynamic category sidebar counts, pin toggle controls, and multi-criteria filter bindings.
+- **M11 — UI Polish & Extras:** Delivered the non-blocking undo toast notification banner, top menu bar (`AppMenuBar`), application-wide keyboard shortcuts, due-soon highlights, and window geometry persistence across restarts via `java.util.prefs.Preferences`.
+- **M12 — Testing & Hardening:** Established JaCoCo coverage threshold enforcement ($\ge 80\%$), created comprehensive edge-case and high-volume performance tests, resolved lint warnings, and authored `docs/test-plan.md`.
+- **M13 — Packaging, Documentation & Release (Tag `v1.0.0`):** Configured `maven-shade-plugin` to package runnable fat JAR `target/todo-app-1.0.0.jar`, completed `README.md`, authored `docs/user-guide.md`, reconciled `docs/design.md`, completed the traceability matrix, and mapped academic course outcomes in `docs/course-mapping.md`.
+
+---
+
+### 5.2 Annotated Code Excerpts
+
+#### 1. Polymorphic Task Entity Hierarchy
+From `src/main/java/com/todoapp/model/Task.java`:
+```java
+public abstract class Task {
+    private final UUID id;
+    private String title;
+    private String description;
+    private Priority priority;
+    private UUID categoryId;
+    private boolean completed;
+    private boolean pinned;
+    private final LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    // Polymorphic contracts implemented by concrete subclasses
+    public abstract TaskType getType();
+    public abstract String getSummary();
+    public abstract double getProgress();
+    public abstract Optional<LocalDate> getDueDate();
+    public abstract boolean isOverdue(LocalDate referenceDate);
+    public abstract Task copy();
+
+    public void touch() {
+        this.updatedAt = LocalDateTime.now();
+    }
+}
+```
+*Annotation:* Abstract `Task` encapsulates shared identity and metadata while declaring polymorphic contracts (`getType()`, `getProgress()`, `isOverdue()`, `copy()`). Concrete subclasses (`SimpleTask`, `ChecklistTask`, `DeadlineTask`) provide tailored implementations without leaking subtype-specific fields to generic consumers.
+
+#### 2. Centralized Instantiation via TaskFactory
+From `src/main/java/com/todoapp/model/TaskFactory.java`:
+```java
+public final class TaskFactory {
+    public static Task create(TaskDraft draft, LocalDateTime now) {
+        draft.validate();
+        return switch (draft.type()) {
+            case SIMPLE -> new SimpleTask(
+                    UUID.randomUUID(), draft.title(), draft.description(),
+                    draft.priority(), draft.categoryId(), false, false, now, now
+            );
+            case CHECKLIST -> {
+                ChecklistTask task = new ChecklistTask(
+                        UUID.randomUUID(), draft.title(), draft.description(),
+                        draft.priority(), draft.categoryId(), false, false, now, now
+                );
+                for (String itemText : draft.checklistItems()) {
+                    task.addItem(itemText);
+                }
+                yield task;
+            }
+            case DEADLINE -> new DeadlineTask(
+                    UUID.randomUUID(), draft.title(), draft.description(),
+                    draft.priority(), draft.categoryId(), false, false, now, now,
+                    draft.dueDate()
+            );
+        };
+    }
+}
+```
+*Annotation:* The Factory Pattern centralizes entity construction, guarantees validation invocation prior to instantiation, and isolates calling layers from concrete class constructors.
+
+#### 3. Domain Event Notification via Observer Pattern
+From `src/main/java/com/todoapp/service/TaskService.java`:
+```java
+    private void notifyListeners(ChangeType type, UUID entityId) {
+        for (TaskChangeListener listener : listeners) {
+            try {
+                listener.onTasksChanged(type, entityId);
+            } catch (Throwable ex) {
+                LOGGER.log(Level.WARNING, "Error executing TaskChangeListener", ex);
+            }
+        }
+    }
+```
+*Annotation:* Decouples business logic from persistence. Whenever a task is created, updated, or deleted, `TaskService` fires events to registered observers (such as `AutosaveListener`) with defensive exception isolation so one failing listener cannot crash core operations.
+
+#### 4. Query Engine & Pinned Invariant Comparator Chain
+From `src/main/java/com/todoapp/service/TaskService.java`:
+```java
+    public List<Task> query(TaskQuery query) {
+        Comparator<Task> secondary = switch (query.sort()) {
+            case DUE_DATE -> Comparator.comparing(
+                    (Task t) -> t.getDueDate().orElse(LocalDate.MAX)
+            ).thenComparing(Task::getCreatedAt, Comparator.reverseOrder());
+            case PRIORITY -> Comparator.comparing(Task::getPriority)
+                    .thenComparing(Task::getCreatedAt, Comparator.reverseOrder());
+            case TITLE -> Comparator.comparing((Task t) -> t.getTitle().toLowerCase())
+                    .thenComparing(Task::getCreatedAt, Comparator.reverseOrder());
+            case CREATED_DATE -> Comparator.comparing(Task::getCreatedAt).reversed();
+        };
+
+        Comparator<Task> finalComparator = Comparator
+                .comparing(Task::isPinned).reversed()
+                .thenComparing(query.ascending() ? secondary : secondary.reversed());
+
+        return taskRepo.findAll().stream()
+                .filter(filterPredicate(query))
+                .sorted(finalComparator)
+                .map(Task::copy)
+                .toList();
+    }
+```
+*Annotation:* Combines functional predicates with a composite `Comparator` chain. Pinned tasks are sorted permanently ahead of unpinned cards (`comparing(Task::isPinned).reversed()`), with deterministic tie-breaking on creation timestamps.
+
+#### 5. Polymorphic JSON Mapping with Type Discriminator
+From `src/main/java/com/todoapp/storage/JsonMapper.java`:
+```java
+    public static JsonObject taskToJson(Task task) {
+        JsonObject json = new JsonObject();
+        json.addProperty("type", task.getType().name());
+        json.addProperty("id", task.getId().toString());
+        json.addProperty("title", task.getTitle());
+        json.addProperty("description", task.getDescription());
+        json.addProperty("priority", task.getPriority().name());
+        json.addProperty("categoryId", task.getCategoryId().toString());
+        json.addProperty("completed", task.isCompleted());
+        json.addProperty("pinned", task.isPinned());
+        json.addProperty("createdAt", task.getCreatedAt().toString());
+        json.addProperty("updatedAt", task.getUpdatedAt().toString());
+
+        if (task instanceof DeadlineTask dt && dt.getDueDate().isPresent()) {
+            json.addProperty("dueDate", dt.getDueDate().get().toString());
+        } else if (task instanceof ChecklistTask ct) {
+            JsonArray arr = new JsonArray();
+            for (ChecklistItem item : ct.getItems()) {
+                JsonObject itemJson = new JsonObject();
+                itemJson.addProperty("id", item.getId().toString());
+                itemJson.addProperty("text", item.getText());
+                itemJson.addProperty("completed", item.isCompleted());
+                arr.add(itemJson);
+            }
+            json.add("items", arr);
+        }
+        return json;
+    }
+```
+*Annotation:* Implements the Data Mapper pattern. An explicit `"type"` attribute acts as discriminator, allowing the deserializer to reconstruct the exact polymorphic subtype without proprietary Java serialization headers.
+
+#### 6. Atomic File Writing & Quarantine Recovery
+From `src/main/java/com/todoapp/storage/JsonStorage.java`:
+```java
+    @Override
+    public synchronized void save(AppData data) throws StorageException {
+        Path tempFile = Path.of(filePath.toString() + ".tmp");
+        try {
+            if (filePath.getParent() != null) {
+                Files.createDirectories(filePath.getParent());
+            }
+            String json = JsonMapper.toJson(data).toString();
+            Files.writeString(tempFile, json, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+            Files.move(tempFile, filePath,
+                    StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            throw new StorageException("Failed to atomically write storage file: " + filePath, ex);
+        }
+    }
+```
+*Annotation:* Protects user data from catastrophic corruption. Writing to `.tmp` first followed by `StandardCopyOption.ATOMIC_MOVE` guarantees that an unhandled crash or power failure cannot truncate or leave `data.json` partially written.
+
+#### 7. Polymorphic TaskCard Cell Rendering
+From `src/main/java/com/todoapp/ui/TaskCell.java`:
+```java
+    @Override
+    protected void updateItem(Task task, boolean empty) {
+        super.updateItem(task, empty);
+        if (empty || task == null) {
+            setGraphic(null);
+            setText(null);
+            return;
+        }
+
+        titleLabel.setText(task.getTitle());
+        titleLabel.getStyleClass().setAll(task.isCompleted() ? "task-title-completed" : "task-title");
+        priorityStripe.setStyle("-fx-background-color: " + Theme.getPriorityColor(task.getPriority()) + ";");
+
+        if (task instanceof ChecklistTask ct) {
+            subInfoLabel.setText(ct.getSummary());
+            progressBar.setProgress(ct.getProgress());
+            progressBar.setVisible(true);
+        } else if (task instanceof DeadlineTask dt && dt.getDueDate().isPresent()) {
+            boolean overdue = dt.isOverdue(LocalDate.now());
+            badgeLabel.setText(overdue ? "OVERDUE" : "Due " + dt.getDueDate().get());
+            badgeLabel.getStyleClass().setAll(overdue ? "badge-overdue" : "badge-deadline");
+            badgeLabel.setVisible(true);
+        }
+        setGraphic(cardContainer);
+    }
+```
+*Annotation:* Polymorphically inspects `Task` subtypes during list rendering. Dynamically activates checklist progress bars, overdue alert badges, and completion strikethrough styles without altering list controller contracts.
+
+#### 8. Fail-Fast Input Validation
+From `src/main/java/com/todoapp/model/TaskDraft.java`:
+```java
+    public void validate() throws ValidationException {
+        if (title == null || title.trim().isEmpty()) {
+            throw new ValidationException("Task title is required.");
+        }
+        if (title.trim().length() > 100) {
+            throw new ValidationException("Task title must not exceed 100 characters.");
+        }
+        if (type == null) {
+            throw new ValidationException("Task type must not be null.");
+        }
+        if (priority == null) {
+            throw new ValidationException("Priority must not be null.");
+        }
+        if (categoryId == null) {
+            throw new ValidationException("Category must be selected.");
+        }
+        if (type == TaskType.DEADLINE && dueDate == null) {
+            throw new ValidationException("Due date is required for deadline tasks.");
+        }
+    }
+```
+*Annotation:* Immutable record validation enforcing strict business integrity invariants. Rejects null values, empty strings, over-length inputs, and missing dates before entities ever reach repositories.
+
+---
+
+### 5.3 Difficulties Encountered & Engineering Solutions
+
+1. **JavaFX Fat JAR Packaging & Main-Class Modular Conflict:**
+   - *Problem:* JavaFX 21 prohibits the application main class from directly extending `javafx.application.Application` when packaged as a fat shaded JAR, throwing: `Error: JavaFX runtime components are missing, and are required to run this application`.
+   - *Solution:* Introduced `com.todoapp.Launcher.java` as a standard Java entry point with a plain `public static void main(String[] args)` method that delegates to `Application.launch(App.class, args)`. This bypasses the JVM module-path check and enables standalone JAR execution (`java -jar target/todo-app-1.0.0.jar`).
+2. **Maven Compiler Linting Conflicts with CLI Debugging Flags:**
+   - *Problem:* Passing `-Xlint:all` directly to the `mvn` command line caused Apache Maven to interpret `-X` as debug mode, which stalled during remote artifact resolution.
+   - *Solution:* Relocated compiler flags into `pom.xml` under `<configuration><compilerArgs><arg>-Xlint:all</arg><arg>-Xlint:-serial</arg><arg>-Xlint:-this-escape</arg></compilerArgs></configuration>`, ensuring reproducible and clean builds across all environments.
+3. **Java 21 `this-escape` Warnings in GUI Constructors:**
+   - *Problem:* Modern javac emits warnings when passing `this` to helper initialization methods within constructors before the object is fully initialized.
+   - *Solution:* Suppressed specific warning `<arg>-Xlint:-this-escape</arg>` while maintaining full `-Xlint:all` strictness on all other language checks.
+4. **Clock Timestamp Propagation in TaskService:**
+   - *Problem:* During task creation in `TaskService`, `LocalDateTime.now()` was called directly instead of using the injected `Clock` dependency, causing time-travel unit tests with fixed clocks to fail assertion checks.
+   - *Solution:* Refactored `TaskFactory.create(draft, now)` and `TaskFactory.apply(target, draft, now)` in commit `e9503e6` to receive `LocalDateTime.now(clock)`, guaranteeing 100% deterministic test execution.
+
+---
+
+## 6. Object-Oriented Programming (OOP) Concepts Demonstrated
+
+The software design demonstrates thorough understanding and practical application of core object-oriented principles:
+
+| OOP Concept | Target Class & File Path | Concrete Methods / Declarations | Technical Description & Educational Significance |
+|---|---|---|---|
+| **Encapsulation** | `src/main/java/com/todoapp/model/Task.java`<br>`src/main/java/com/todoapp/service/TaskService.java` | Private fields (`id`, `title`, `priority`)<br>`Task.copy()`<br>`TaskService.get(UUID)` | Domain entity fields are strictly private. Mutable state is protected behind controlled mutators and getters. To prevent UI controllers or external callers from corrupting stored state, `TaskService` returns deep copies via `copy()`. State modifications must submit a validated `TaskDraft`. |
+| **Inheritance** | `src/main/java/com/todoapp/model/Task.java`<br>`src/main/java/com/todoapp/model/SimpleTask.java`<br>`src/main/java/com/todoapp/model/ChecklistTask.java`<br>`src/main/java/com/todoapp/model/DeadlineTask.java` | `public abstract class Task`<br>`class SimpleTask extends Task`<br>`class ChecklistTask extends Task`<br>`class DeadlineTask extends Task` | Base class `Task` centralizes common entity attributes (UUID, title, description, priority, category, completion status, timestamps) and lifecycle behavior (`touch()`). Specific task variants inherit this foundation while extending specialized data members (e.g. `items` in `ChecklistTask`, `dueDate` in `DeadlineTask`). |
+| **Polymorphism** | `src/main/java/com/todoapp/model/Task.java`<br>`src/main/java/com/todoapp/ui/TaskCell.java`<br>`src/main/java/com/todoapp/storage/JsonMapper.java` | `abstract TaskType getType()`<br>`abstract String getSummary()`<br>`abstract double getProgress()`<br>`abstract boolean isOverdue(LocalDate)` | Dynamic method dispatch allows clients to treat all tasks uniformly via the `Task` abstraction. In `TaskCell`, progress bars and deadline badges are dynamically computed via polymorphic calls without modifying cell container contracts. `JsonMapper` handles serialization based on polymorphic types. |
+| **Abstraction** | `src/main/java/com/todoapp/repository/TaskRepository.java`<br>`src/main/java/com/todoapp/repository/CategoryRepository.java`<br>`src/main/java/com/todoapp/storage/Storage.java` | `TaskRepository.save(Task)`<br>`TaskRepository.findById(UUID)`<br>`Storage.load()`<br>`Storage.save(AppData)` | High-level business services interact exclusively with abstract interfaces (`TaskRepository`, `Storage`), completely decoupling domain rules from storage mechanics (in-memory maps, JSON files, future SQL databases). |
+| **Interface Segregation** | `src/main/java/com/todoapp/service/TaskChangeListener.java`<br>`src/main/java/com/todoapp/controller/ViewListener.java` | `onTasksChanged(ChangeType, UUID)`<br>`onViewChanged(List<Task>, ...)` | Interfaces are fine-grained and single-purpose. `AutosaveListener` implements `TaskChangeListener` to handle background persistence without being burdened with UI rendering responsibilities. |
+| **Dependency Inversion** | `src/main/java/com/todoapp/service/TaskService.java`<br>`src/main/java/com/todoapp/controller/MainController.java` | Constructor injection: `new TaskService(TaskRepository, CategoryRepository, Clock)` | High-level modules do not instantiate low-level concrete implementations directly. Dependencies are injected via constructors as abstract interfaces, allowing test harnesses to supply mock repositories or fixed virtual clocks seamlessly. |
+
+---
+
+## 7. Graphical User Interface (GUI) Walkthrough
+
+This chapter illustrates each graphical screen, user control, and interaction workflow.
+
+> **Note for Evaluators & Graders:** Wherever screenshots are required, an explicit callout block is provided below indicating the exact view and file reference (`docs/img/*.png`) to be inserted. To inspect and test these screens live on your machine, launch the application using `mvn javafx:run -Djavafx.args="--seed --data=todo-dev.json"`.
+
+---
+
+### 7.1 Main Application Window & Dashboard
+The primary window provides a three-pane layout: a top toolbar, a left category navigation sidebar, and a central scrollable task card view, anchored by a bottom status bar.
+
+> **[SCREENSHOT NEEDED: docs/img/01-main-window.png]**  
+> *Capture the entire main application window after launching with `--seed`. The screenshot must clearly display the top menu bar, the toolbar with search bar and sort dropdown, the category sidebar with count badges, multiple task cards with color stripes and pins, and the bottom status bar.*
+
+![Main Window Dashboard](img/01-main-window.png)
+
+- **Top Menu Bar:** Provides standard `File`, `Edit`, `View`, and `Help` cascading menus.
+- **Top Toolbar:** Features a prominent **+ New Task** primary action button, live search text field, completion status filter toggle, and sort dropdown.
+- **Category Sidebar:** Lists pre-configured categories (`All Tasks`, `General`, `Work`, `Personal`, `Shopping`) and user-created custom categories, displaying live item counts. Clicking a category filters the view immediately.
+- **Status Bar:** Real-time summary showing total tasks, active count, completed count, and autosave status (`Autosaved`).
+
+---
+
+### 7.2 Creating a Simple Task
+Clicking **+ New Task** or pressing `Ctrl+N` opens the modal `TaskEditorDialog`.
+
+> **[SCREENSHOT NEEDED: docs/img/02-task-simple.png]**  
+> *Capture the Task Editor modal dialog with "Simple" selected, title input filled, priority set to High, and category set to Work.*
+
+![Simple Task Creation](img/02-task-simple.png)
+
+- **Title Field:** Validates input in real time (1 to 100 characters; whitespace-only entries rejected).
+- **Description Field:** Multi-line text area supporting extended notes.
+- **Type Selector:** Radio buttons selecting `Simple`, `Checklist`, or `Deadline`.
+- **Priority Dropdown:** Selects `High` (Red), `Medium` (Amber), or `Low` (Green).
+- **Category Dropdown:** Populated dynamically from all active categories in the repository.
+
+---
+
+### 7.3 Creating & Managing Checklist Tasks
+Selecting the `Checklist` radio button expands the dialog to reveal the sub-item management section.
+
+> **[SCREENSHOT NEEDED: docs/img/03-task-checklist.png]**  
+> *Capture the Task Editor with "Checklist" selected, displaying multiple sub-items added, several items checked off, and the dynamic progress bar visible.*
+
+![Checklist Task Creation](img/03-task-checklist.png)
+
+- **Sub-Item Input Field:** Type sub-task text and press `Enter` or click **+ Add**.
+- **Interactive Checkboxes:** Sub-items can be checked or unchecked directly within the editor.
+- **Removal Button:** Allows deleting selected sub-items prior to saving.
+- **Two-Way Completion Logic:** Completing the parent task automatically completes all sub-items; checking all sub-items automatically marks the parent task completed.
+
+---
+
+### 7.4 Creating Deadline Tasks
+Selecting the `Deadline` radio button displays the JavaFX `DatePicker` control.
+
+> **[SCREENSHOT NEEDED: docs/img/04-task-deadline.png]**  
+> *Capture the Task Editor with "Deadline" selected, showing the open JavaFX DatePicker calendar popup.*
+
+![Deadline Task Creation](img/04-task-deadline.png)
+
+- **Date Picker:** Enforces valid calendar date selection; blank dates trigger inline validation errors.
+- **Dynamic Card Highlighting:**
+  - **Overdue:** Displays a prominent red `OVERDUE` badge if the deadline has passed.
+  - **Due Soon:** Displays an amber `Due in X days` badge if due within 48 hours.
+
+---
+
+### 7.5 Task Cards, Priority Stripes & Visual Indicators
+The central `ListView` hosts custom `TaskCell` cards styled via CSS:
+
+> **[SCREENSHOT NEEDED: docs/img/05-card-highlights.png]**  
+> *Capture a close-up of multiple task cards in the list view showing the left vertical priority stripe (red/amber/green), gold pin badge in top-right, category chip, and checklist progress bar.*
+
+![Task Card Visual Indicators](img/05-card-highlights.png)
+
+- **Priority Stripe:** Vertical 5px stripe on the card's left edge indicating urgency (Red = High, Amber = Medium, Green = Low).
+- **Pin Badge:** Clicking the pin icon toggles pin status; pinned cards display a gold badge and remain anchored at the top.
+- **Category Chip:** Rounded badge displaying the category name and its assigned hex color.
+- **Completion Checkbox:** Checking the box strikes through the title and reduces card opacity.
+
+---
+
+### 7.6 Category Management Dialog
+Clicking **+ Add Category** at the bottom of the sidebar opens the `CategoryDialog`:
+
+> **[SCREENSHOT NEEDED: docs/img/06-category-dialog.png]**  
+> *Capture the Category Creation dialog showing the category name field and the color palette selection buttons.*
+
+![Category Management Dialog](img/06-category-dialog.png)
+
+- **Name Input:** Enforces case-insensitive uniqueness; duplicate names display inline red error messages.
+- **Color Selector:** Grid of curated hex colors (Blue, Green, Red, Orange, Purple, Teal, Slate).
+- **Safe Deletion:** Deleting a custom category automatically reassigns all member tasks to `General`, preventing orphaned tasks. Default categories cannot be deleted.
+
+---
+
+### 7.7 Live Search, Filtering & Sorting
+Real-time filtering and sorting controls on the toolbar:
+
+> **[SCREENSHOT NEEDED: docs/img/07-search-filter.png]**  
+> *Capture the application with an active search query (e.g. "report") typed in the search box, showing filtered task cards and updated status bar count.*
+
+![Live Search and Filtering](img/07-search-filter.png)
+
+- **Instant Search Bar:** Matches queries across task titles and descriptions with a 200 ms debounce to prevent UI stutter. Pressing `Esc` clears the query.
+- **Status Filter:** CheckMenuItem / Toggle to show or hide completed tasks.
+- **Sorting Options:** Dropdown allowing sorting by Due Date, Priority, Title (A-Z), or Created Date, with the pinned invariant always preserved.
+
+---
+
+### 7.8 Task Deletion & Undo Toast Notification
+Deleting a task prompts a confirmation dialog and activates single-step undo:
+
+> **[SCREENSHOT NEEDED: docs/img/08-undo-toast.png]**  
+> *Capture the bottom toast notification banner displaying "Task '...' deleted. [Undo]" alongside the menu bar Edit menu showing "Undo Delete (Ctrl+Z)".*
+
+![Undo Toast Notification Banner](img/08-undo-toast.png)
+
+- **Confirmation Alert:** Protects against accidental clicks on the trash icon or `Delete` key.
+- **Toast Notification Banner:** Floats at the bottom for 5 seconds offering an **Undo** button.
+- **Menu & Shortcut:** `Edit ▸ Undo Delete` and `Ctrl+Z` immediately restore the deleted task to its exact prior state.
+
+---
+
+### 7.9 About & Keyboard Shortcuts Dialogs
+Help menu dialogs providing runtime information and keyboard guidance:
+
+> **[SCREENSHOT NEEDED: docs/img/09-about-dialog.png]**  
+> *Capture the "About TODO App" information dialog (`Help ▸ About TODO App`).*
+
+![About Dialog](img/09-about-dialog.png)
+
+> **[SCREENSHOT NEEDED: docs/img/10-shortcuts-dialog.png]**  
+> *Capture the "Keyboard Shortcuts" help dialog (`Help ▸ Keyboard Shortcuts`).*
+
+![Keyboard Shortcuts Dialog](img/10-shortcuts-dialog.png)
+
+---
+
+### 7.10 Complete Keyboard Shortcuts Reference
+
+| Key Combination | Action Triggered | Context / Focus Scope |
+|---|---|---|
+| <kbd>Ctrl</kbd> + <kbd>N</kbd> | Open New Task Dialog | Application-wide |
+| <kbd>Ctrl</kbd> + <kbd>Z</kbd> | Undo Last Deleted Task | Application-wide (when undo buffer active) |
+| <kbd>Ctrl</kbd> + <kbd>F</kbd> | Focus Search Bar & Select All | Application-wide |
+| <kbd>Enter</kbd> / <kbd>F2</kbd> | Open Task Editor for Selected Task | Task Card List |
+| <kbd>Delete</kbd> | Delete Selected Task (Prompts confirmation) | Task Card List |
+| <kbd>Space</kbd> | Toggle Completion of Selected Task | Task Card List |
+| <kbd>Esc</kbd> | Clear Search Query / Dismiss Dialogs | Search Bar / Dialog Windows |
+| <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | Save Task & Close Dialog | Task Editor Dialog |
