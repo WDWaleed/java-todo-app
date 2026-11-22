@@ -8,12 +8,15 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Center pane hosting the task list view, empty-state placeholder,
@@ -54,16 +57,34 @@ public class TaskListPane extends VBox {
             }
         });
 
+        // Delete key shortcut per M09.4
+        listView.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.DELETE) {
+                Task selected = listView.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    TaskCell.confirmAndDelete(controller, selected);
+                }
+            }
+        });
+
         getChildren().add(listView);
     }
 
     /**
-     * Replaces the currently displayed tasks list with the given collection.
+     * Replaces the currently displayed tasks list with the given collection,
+     * preserving selection where possible.
      *
      * @param tasks non-null list of tasks
      */
     public void setTasks(List<Task> tasks) {
+        UUID selectedId = controller.getCurrentState().selectedTaskId();
         tasksList.setAll(tasks);
+        if (selectedId != null) {
+            tasksList.stream()
+                    .filter(t -> selectedId.equals(t.getId()))
+                    .findFirst()
+                    .ifPresent(matching -> listView.getSelectionModel().select(matching));
+        }
     }
 
     /**
