@@ -1,0 +1,9 @@
+Overall Non-UI Line Coverage: 96.63% (Covered: 1263, Missed: 44)
+
+Per Package:
+com.todoapp.service: Covered=302, Missed=7, Total=309, Coverage=97.73%
+com.todoapp.storage: Covered=272, Missed=27, Total=299, Coverage=90.97%
+com.todoapp.controller: Covered=156, Missed=4, Total=160, Coverage=97.5%
+com.todoapp: Covered=117, Missed=0, Total=117, Coverage=100%
+com.todoapp.model: Covered=377, Missed=6, Total=383, Coverage=98.43%
+com.todoapp.repository: Covered=39, Missed=0, Total=39, Coverage=100%

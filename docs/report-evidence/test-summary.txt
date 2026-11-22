@@ -1,0 +1,21 @@
+Total Tests: 147
+Failures: 0
+Errors: 0
+Skipped: 0
+Total Time: 0.93 s
+
+Suites:
+com.todoapp.AppConfigTest: tests=5, failures=0, errors=0, skipped=0, time=0.071 s
+com.todoapp.AppSmokeTest: tests=1, failures=0, errors=0, skipped=0, time=0.002 s
+com.todoapp.controller.MainControllerTest: tests=29, failures=0, errors=0, skipped=0, time=0.19 s
+com.todoapp.DevSeedTest: tests=2, failures=0, errors=0, skipped=0, time=0.01 s
+com.todoapp.EdgeCaseAndIntegrationTest: tests=39, failures=0, errors=0, skipped=0, time=0.213 s
+com.todoapp.model.TaskModelTest: tests=11, failures=0, errors=0, skipped=0, time=0.083 s
+com.todoapp.repository.RepositoryTest: tests=2, failures=0, errors=0, skipped=0, time=0.006 s
+com.todoapp.service.CategoryServiceTest: tests=8, failures=0, errors=0, skipped=0, time=0.028 s
+com.todoapp.service.TaskQueryEngineTest: tests=14, failures=0, errors=0, skipped=0, time=0.042 s
+com.todoapp.service.TaskServiceTest: tests=11, failures=0, errors=0, skipped=0, time=0.028 s
+com.todoapp.storage.AutosaveListenerTest: tests=5, failures=0, errors=0, skipped=0, time=0.172 s
+com.todoapp.storage.DataSyncTest: tests=3, failures=0, errors=0, skipped=0, time=0.005 s
+com.todoapp.storage.JsonMapperTest: tests=9, failures=0, errors=0, skipped=0, time=0.022 s
+com.todoapp.storage.JsonStorageTest: tests=8, failures=0, errors=0, skipped=0, time=0.058 s

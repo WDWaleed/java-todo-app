@@ -1,0 +1,11 @@
+Total commits: 81
+chore : 2
+style : 1
+build : 3
+refactor : 1
+feat : 35
+other : 0
+test : 9
+fix : 3
+docs : 27
+

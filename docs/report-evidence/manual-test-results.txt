@@ -1,0 +1,21 @@
+TC-01: Create Simple/Checklist/Deadline tasks - PASS (FR-01, FR-11, FR-12)
+TC-02: Read & inspect task details - PASS (FR-02)
+TC-03: Update task and checklist items - PASS (FR-03, FR-11)
+TC-04: Delete task with confirmation - PASS (FR-04)
+TC-05: One-click completion toggle - PASS (FR-05)
+TC-06: Quick priority change - PASS (FR-06)
+TC-07: Sort options + pinned tasks - PASS (FR-07, FR-14)
+TC-08: Category management & fallback - PASS (FR-08)
+TC-09: Multi-dimensional filtering - PASS (FR-09)
+TC-10: Live debounced search - PASS (FR-10)
+TC-11: Due date, overdue, due-soon highlights - PASS (FR-12)
+TC-12: Autosave & session persistence - PASS (FR-13)
+TC-13: Undo deleted task - PASS (FR-15)
+TC-14: Keyboard shortcuts suite - PASS (FR-16)
+TC-15: Validation constraints - PASS (FR-17)
+TC-16: Window state persistence & UI feel - PASS (NFR-01, NFR-02)
+
+Total Manual Test Cases: 16
+Passed: 16
+Failed: 0
+Status: 100% PASS

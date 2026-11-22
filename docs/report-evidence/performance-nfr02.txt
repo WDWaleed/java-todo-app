@@ -1,0 +1,6 @@
+Metric: Query & Filter Performance with 1,000 Tasks
+Test: com.todoapp.EdgeCaseAndIntegrationTest.testPerformanceWith1000Tasks
+Measured Execution Time: 51 ms
+Requirement Threshold (NFR-02): < 100 ms
+Status: PASS (Exceeds requirement by ~49%)
+Platform: Windows 11 / OpenJDK 25 (64-Bit Server VM)

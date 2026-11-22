@@ -1,0 +1,7 @@
+com.todoapp.controller: 4 classes
+com.todoapp.model: 11 classes
+com.todoapp.repository: 5 classes
+com.todoapp.service: 10 classes
+com.todoapp.storage: 8 classes
+com.todoapp.ui: 11 classes
+com.todoapp: 5 classes
