@@ -17,6 +17,7 @@ bin/
 
 # User and runtime data
 data.json
+todo-*.json
 *.json.tmp
 *.json.corrupt-*
 .todoapp/
