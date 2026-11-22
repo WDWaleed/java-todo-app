@@ -338,6 +338,7 @@ class MainControllerTest {
     @DisplayName("onUndoDelete restores deleted task or reports nothing to undo")
     void testOnUndoDelete() {
         // When buffer is empty
+        assertFalse(controller.canUndo());
         var emptyUndo = controller.onUndoDelete();
         assertTrue(emptyUndo.isEmpty());
         assertEquals("Nothing to undo", controller.getCurrentState().infoMessage());
@@ -345,8 +346,10 @@ class MainControllerTest {
         // After deleting a task
         Task created = taskService.create(TaskDraft.ofSimple("Undo Me", "", Priority.HIGH, Category.DEFAULT_ID));
         controller.onDeleteTask(created.getId());
+        assertTrue(controller.canUndo());
 
         var restoredOpt = controller.onUndoDelete();
+        assertFalse(controller.canUndo());
         assertTrue(restoredOpt.isPresent());
         assertEquals(created.getId(), restoredOpt.get().getId());
         assertEquals("Undo Me", restoredOpt.get().getTitle());

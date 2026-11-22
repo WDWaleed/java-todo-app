@@ -251,6 +251,20 @@
     -fx-font-weight: bold;
 }
 
+.status-undo-button {
+    -fx-background-color: #1976d2;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 3px 10px;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+}
+
+.status-undo-button:hover {
+    -fx-background-color: #1565c0;
+}
+
 /* --- Common Labels --- */
 .error-label {
     -fx-text-fill: #d32f2f;

@@ -219,6 +219,15 @@ public class TaskService {
     }
 
     /**
+     * Checks if there is a deleted task in the single-slot undo buffer ready to be restored.
+     *
+     * @return true if undo buffer contains an entity, false otherwise
+     */
+    public boolean canUndo() {
+        return undoBuffer != null;
+    }
+
+    /**
      * Directly restores a task instance (e.g. for undo workflows).
      *
      * @param task task to restore

@@ -296,6 +296,15 @@ public class MainController {
     }
 
     /**
+     * Checks if a deleted task is available in the undo buffer.
+     *
+     * @return true if undo is available, false otherwise
+     */
+    public boolean canUndo() {
+        return taskService.canUndo();
+    }
+
+    /**
      * Toggles the completion status of a task.
      *
      * @param id target task UUID

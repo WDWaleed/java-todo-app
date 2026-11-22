@@ -65,6 +65,12 @@ public class MainView extends BorderPane implements ViewListener {
             int activeCount = controller.getTaskService().countActive();
             int completedCount = controller.getTaskService().countCompleted();
             statusBar.update(activeCount, completedCount, state.infoMessage(), state.errorMessage());
+
+            if (controller.canUndo() && state.infoMessage() != null && state.infoMessage().startsWith("Task deleted:")) {
+                statusBar.showUndo(controller::onUndoDelete);
+            } else if (!controller.canUndo()) {
+                statusBar.hideUndo();
+            }
         };
 
         if (Platform.isFxApplicationThread()) {

@@ -210,7 +210,9 @@ class TaskServiceTest {
         eventLog.clear();
 
         // Delete task 1
+        assertFalse(taskService.canUndo());
         Task deleted1 = taskService.delete(task1.getId());
+        assertTrue(taskService.canUndo());
         assertEquals(task1.getId(), deleted1.getId());
         assertEquals(1, taskService.getAll().size());
         assertEquals(1, eventLog.size());
@@ -219,6 +221,7 @@ class TaskServiceTest {
 
         // Undo restores task 1
         Optional<Task> restored1 = taskService.undoDelete();
+        assertFalse(taskService.canUndo());
         assertTrue(restored1.isPresent());
         assertEquals(task1.getId(), restored1.get().getId());
         assertEquals("Delete Me 1", restored1.get().getTitle());
