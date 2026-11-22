@@ -803,7 +803,7 @@ The executing agent updates this table (Protocol step 6).
 | M11 | Polish & extras | ✅ | 2026-11-22 | |
 | M12 | Testing & hardening | ✅ | 2026-11-22 | |
 | M13 | Packaging, documentation & release | ✅ | 2026-11-22 | v1.0.0 |
-| M14 | Final project report | ⬜ | | |
+| M14 | Final project report | ✅ | 2026-11-22 | |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done · ⛔ blocked
 
