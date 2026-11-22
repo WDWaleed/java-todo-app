@@ -2,6 +2,7 @@
 target/
 out/
 bin/
+dependency-reduced-pom.xml
 
 # IDE and Editor files
 .idea/

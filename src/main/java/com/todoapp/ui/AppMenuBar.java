@@ -130,9 +130,13 @@ public class AppMenuBar extends MenuBar {
      * Displays the About dialog.
      */
     public static void showAboutDialog() {
+        String version = App.class.getPackage().getImplementationVersion();
+        if (version == null || version.isBlank()) {
+            version = "1.0.0";
+        }
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("About " + App.APP_NAME);
-        alert.setHeaderText(App.APP_NAME + " - Version 1.0.0");
+        alert.setHeaderText(App.APP_NAME + " - Version " + version);
         alert.setContentText(
                 "A modern, offline-first TODO desktop application built with JavaFX.\n\n"
                         + "Author: Software Construction Lab (OEL)\n"
