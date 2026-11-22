@@ -259,4 +259,145 @@ class MainControllerTest {
         assertNull(s4.errorMessage());
         assertNull(s4.infoMessage());
     }
+
+    @Test
+    @DisplayName("onCreateTask succeeds with valid draft and updates state")
+    void testOnCreateTaskSuccess() {
+        TaskDraft draft = TaskDraft.ofSimple("Buy groceries", "Milk and bread", Priority.HIGH, Category.DEFAULT_ID);
+        var createdOpt = controller.onCreateTask(draft);
+
+        assertTrue(createdOpt.isPresent());
+        Task created = createdOpt.get();
+        assertEquals("Buy groceries", created.getTitle());
+        assertEquals(created.getId(), controller.getCurrentState().selectedTaskId());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Task created: Buy groceries"));
+        assertNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onCreateTask handles ValidationException and sets error message")
+    void testOnCreateTaskValidationFailure() {
+        TaskDraft invalidDraft = TaskDraft.ofSimple("", "Desc", Priority.MEDIUM, Category.DEFAULT_ID);
+        var createdOpt = controller.onCreateTask(invalidDraft);
+
+        assertTrue(createdOpt.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+        assertFalse(controller.getCurrentState().errorMessage().isBlank());
+    }
+
+    @Test
+    @DisplayName("onUpdateTask succeeds and updates task and info message")
+    void testOnUpdateTaskSuccess() {
+        Task created = taskService.create(TaskDraft.ofSimple("Initial", "Desc", Priority.LOW, Category.DEFAULT_ID));
+
+        TaskDraft updatedDraft = TaskDraft.ofSimple("Updated Title", "Updated Desc", Priority.HIGH, Category.DEFAULT_ID);
+        var updatedOpt = controller.onUpdateTask(created.getId(), updatedDraft);
+
+        assertTrue(updatedOpt.isPresent());
+        assertEquals("Updated Title", updatedOpt.get().getTitle());
+        assertEquals(Priority.HIGH, updatedOpt.get().getPriority());
+        assertEquals(created.getId(), controller.getCurrentState().selectedTaskId());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Task updated: Updated Title"));
+    }
+
+    @Test
+    @DisplayName("onUpdateTask handles validation and not-found failure paths")
+    void testOnUpdateTaskFailures() {
+        Task created = taskService.create(TaskDraft.ofSimple("Initial", "Desc", Priority.LOW, Category.DEFAULT_ID));
+
+        // Validation failure
+        TaskDraft invalidDraft = TaskDraft.ofSimple("   ", "Desc", Priority.LOW, Category.DEFAULT_ID);
+        var resultInvalid = controller.onUpdateTask(created.getId(), invalidDraft);
+        assertTrue(resultInvalid.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+
+        // Not found failure
+        UUID randomId = UUID.randomUUID();
+        var resultNotFound = controller.onUpdateTask(randomId, TaskDraft.ofSimple("Valid", "Desc", Priority.LOW, Category.DEFAULT_ID));
+        assertTrue(resultNotFound.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onDeleteTask removes task, buffers for undo, and handles not-found")
+    void testOnDeleteTask() {
+        Task created = taskService.create(TaskDraft.ofSimple("To Delete", "Desc", Priority.MEDIUM, Category.DEFAULT_ID));
+
+        boolean deleted = controller.onDeleteTask(created.getId());
+        assertTrue(deleted);
+        assertNull(controller.getCurrentState().selectedTaskId());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Task deleted: To Delete — Undo"));
+
+        // Deleting non-existent task returns false and sets error message
+        boolean deletedAgain = controller.onDeleteTask(created.getId());
+        assertFalse(deletedAgain);
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onUndoDelete restores deleted task or reports nothing to undo")
+    void testOnUndoDelete() {
+        // When buffer is empty
+        var emptyUndo = controller.onUndoDelete();
+        assertTrue(emptyUndo.isEmpty());
+        assertEquals("Nothing to undo", controller.getCurrentState().infoMessage());
+
+        // After deleting a task
+        Task created = taskService.create(TaskDraft.ofSimple("Undo Me", "", Priority.HIGH, Category.DEFAULT_ID));
+        controller.onDeleteTask(created.getId());
+
+        var restoredOpt = controller.onUndoDelete();
+        assertTrue(restoredOpt.isPresent());
+        assertEquals(created.getId(), restoredOpt.get().getId());
+        assertEquals("Undo Me", restoredOpt.get().getTitle());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Task restored: Undo Me"));
+    }
+
+    @Test
+    @DisplayName("onToggleComplete toggles status and handles not found")
+    void testOnToggleComplete() {
+        Task created = taskService.create(TaskDraft.ofSimple("Task", "", Priority.MEDIUM, Category.DEFAULT_ID));
+        assertFalse(created.isCompleted());
+
+        controller.onToggleComplete(created.getId());
+        Task updated = taskService.get(created.getId());
+        assertTrue(updated.isCompleted());
+        assertNull(controller.getCurrentState().errorMessage());
+
+        // Not found
+        controller.onToggleComplete(UUID.randomUUID());
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onSetPriority updates priority and handles not found")
+    void testOnSetPriority() {
+        Task created = taskService.create(TaskDraft.ofSimple("Task", "", Priority.LOW, Category.DEFAULT_ID));
+        assertEquals(Priority.LOW, created.getPriority());
+
+        controller.onSetPriority(created.getId(), Priority.HIGH);
+        Task updated = taskService.get(created.getId());
+        assertEquals(Priority.HIGH, updated.getPriority());
+        assertNull(controller.getCurrentState().errorMessage());
+
+        // Not found
+        controller.onSetPriority(UUID.randomUUID(), Priority.HIGH);
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onTogglePinned toggles pinned state and handles not found")
+    void testOnTogglePinned() {
+        Task created = taskService.create(TaskDraft.ofSimple("Task", "", Priority.LOW, Category.DEFAULT_ID));
+        assertFalse(created.isPinned());
+
+        controller.onTogglePinned(created.getId());
+        Task updated = taskService.get(created.getId());
+        assertTrue(updated.isPinned());
+        assertNull(controller.getCurrentState().errorMessage());
+
+        // Not found
+        controller.onTogglePinned(UUID.randomUUID());
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
 }
