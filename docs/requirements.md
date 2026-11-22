@@ -499,27 +499,27 @@ The traceability matrix establishes bi-directional alignment between requirement
 
 | Requirement | Milestone(s) | Class(es) [M13] | Test(s) [M13] |
 |---|---|---|---|
-| **FR-01** (Create task) | M03, M05, M08, M09 | *Pending M13* | *Pending M13* |
-| **FR-02** (Read task) | M03, M05, M08, M09 | *Pending M13* | *Pending M13* |
-| **FR-03** (Update task) | M03, M05, M09 | *Pending M13* | *Pending M13* |
-| **FR-04** (Delete task) | M05, M09 | *Pending M13* | *Pending M13* |
-| **FR-05** (Mark complete / incomplete) | M03, M05, M09 | *Pending M13* | *Pending M13* |
-| **FR-06** (Prioritize) | M03, M05, M08, M09 | *Pending M13* | *Pending M13* |
-| **FR-07** (Sort) | M06, M08, M10 | *Pending M13* | *Pending M13* |
-| **FR-08** (Categories) | M03, M04, M10 | *Pending M13* | *Pending M13* |
-| **FR-09** (Filter) | M06, M08, M10 | *Pending M13* | *Pending M13* |
-| **FR-10** (Search) | M06, M08, M10 | *Pending M13* | *Pending M13* |
-| **FR-11** (Checklist tasks) | M03, M07, M09 | *Pending M13* | *Pending M13* |
-| **FR-12** (Deadline tasks) | M03, M07, M09, M11 | *Pending M13* | *Pending M13* |
-| **FR-13** (Persistence) | M07, M08 | *Pending M13* | *Pending M13* |
-| **FR-14** (Pin task) | M03, M05, M06, M10 | *Pending M13* | *Pending M13* |
-| **FR-15** (Undo delete) | M05, M11 | *Pending M13* | *Pending M13* |
-| **FR-16** (Keyboard shortcuts) | M11 | *Pending M13* | *Pending M13* |
-| **FR-17** (Validation) | M03, M04, M05, M09, M10 | *Pending M13* | *Pending M13* |
-| **NFR-01** (Usability) | M08, M09, M10, M11 | *Pending M13* | *Pending M13* |
-| **NFR-02** (Performance) | M06, M12 | *Pending M13* | *Pending M13* |
-| **NFR-03** (Reliability) | M07, M12 | *Pending M13* | *Pending M13* |
-| **NFR-04** (Portability) | M00, M12, M13 | *Pending M13* | *Pending M13* |
-| **NFR-05** (Maintainability) | M00, M03–M13 | *Pending M13* | *Pending M13* |
-| **NFR-06** (Testability) | M03–M08, M12 | *Pending M13* | *Pending M13* |
-| **NFR-07** (Threading) | M07, M08, M11, M12 | *Pending M13* | *Pending M13* |
+| **FR-01** (Create task) | M03, M05, M08, M09 | `TaskDraft`, `TaskFactory`, `TaskService`, `InMemoryTaskRepository`, `MainController`, `TaskEditorDialog` | `TaskModelTest`, `TaskServiceTest`, `MainControllerTest`, `EdgeCaseAndIntegrationTest` |
+| **FR-02** (Read task) | M03, M05, M08, M09 | `Task`, `TaskService`, `InMemoryTaskRepository`, `MainController`, `TaskListPane`, `TaskCell` | `TaskModelTest`, `TaskServiceTest`, `MainControllerTest`, `RepositoryTest` |
+| **FR-03** (Update task) | M03, M05, M09 | `Task`, `TaskFactory`, `TaskService`, `MainController`, `TaskEditorDialog` | `TaskModelTest`, `TaskServiceTest`, `MainControllerTest` |
+| **FR-04** (Delete task) | M05, M09 | `TaskService`, `InMemoryTaskRepository`, `MainController`, `TaskCell`, `AppMenuBar` | `TaskServiceTest`, `RepositoryTest`, `MainControllerTest` |
+| **FR-05** (Mark complete / incomplete) | M03, M05, M09 | `Task`, `ChecklistTask`, `TaskService`, `MainController`, `TaskCell` | `TaskModelTest`, `TaskServiceTest`, `MainControllerTest` |
+| **FR-06** (Prioritize) | M03, M05, M08, M09 | `Priority`, `Task`, `TaskService`, `MainController`, `TaskCell` | `TaskModelTest`, `TaskServiceTest`, `MainControllerTest` |
+| **FR-07** (Sort) | M06, M08, M10 | `SortOption`, `TaskQuery`, `TaskService`, `MainController`, `ToolbarPane` | `TaskQueryEngineTest`, `TaskServiceTest`, `MainControllerTest` |
+| **FR-08** (Categories) | M03, M04, M10 | `Category`, `CategoryRepository`, `CategoryService`, `MainController`, `CategoryPane`, `CategoryDialog` | `CategoryServiceTest`, `RepositoryTest`, `MainControllerTest` |
+| **FR-09** (Filter) | M06, M08, M10 | `StatusFilter`, `TaskQuery`, `TaskService`, `MainController`, `ToolbarPane`, `CategoryPane` | `TaskQueryEngineTest`, `TaskServiceTest`, `MainControllerTest` |
+| **FR-10** (Search) | M06, M08, M10 | `TaskQuery`, `TaskService`, `MainController`, `ToolbarPane` | `TaskQueryEngineTest`, `TaskServiceTest`, `MainControllerTest` |
+| **FR-11** (Checklist tasks) | M03, M07, M09 | `ChecklistItem`, `ChecklistTask`, `JsonMapper`, `TaskEditorDialog`, `TaskCell` | `TaskModelTest`, `JsonMapperTest`, `EdgeCaseAndIntegrationTest` |
+| **FR-12** (Deadline tasks) | M03, M07, M09, M11 | `DeadlineTask`, `JsonMapper`, `TaskEditorDialog`, `TaskCell` | `TaskModelTest`, `JsonMapperTest`, `EdgeCaseAndIntegrationTest` |
+| **FR-13** (Persistence) | M07, M08 | `Storage`, `JsonStorage`, `JsonMapper`, `AppData`, `AutosaveListener`, `DataSync` | `JsonStorageTest`, `JsonMapperTest`, `AutosaveListenerTest`, `DataSyncTest`, `EdgeCaseAndIntegrationTest` |
+| **FR-14** (Pin task) | M03, M05, M06, M10 | `Task`, `TaskService`, `MainController`, `TaskCell` | `TaskModelTest`, `TaskServiceTest`, `TaskQueryEngineTest`, `MainControllerTest` |
+| **FR-15** (Undo delete) | M05, M11 | `TaskService`, `MainController`, `MainView`, `AppMenuBar` | `TaskServiceTest`, `MainControllerTest` |
+| **FR-16** (Keyboard shortcuts) | M11 | `App`, `AppMenuBar`, `TaskListPane`, `ToolbarPane` | `AppSmokeTest`, `docs/test-plan.md` (TS-01..10) |
+| **FR-17** (Validation) | M03, M04, M05, M09, M10 | `TaskDraft`, `TaskService`, `CategoryService`, `ValidationException`, `TaskEditorDialog`, `CategoryDialog` | `TaskModelTest`, `TaskServiceTest`, `CategoryServiceTest`, `EdgeCaseAndIntegrationTest` |
+| **NFR-01** (Usability) | M08, M09, M10, M11 | `MainView`, `TaskCell`, `Theme`, `StatusBar`, `AppMenuBar` | `docs/test-plan.md` (Manual GUI Script TS-01..12) |
+| **NFR-02** (Performance) | M06, M12 | `TaskService`, `TaskQuery`, `JsonStorage` | `EdgeCaseAndIntegrationTest` (`testHighVolumeQueryPerformance`) |
+| **NFR-03** (Reliability) | M07, M12 | `JsonStorage`, `AutosaveListener`, `StorageException` | `JsonStorageTest`, `AutosaveListenerTest`, `EdgeCaseAndIntegrationTest` |
+| **NFR-04** (Portability) | M00, M12, M13 | `Launcher`, `App`, `AppConfig`, `pom.xml` | `AppConfigTest`, `AppSmokeTest`, Runnable Shaded JAR build |
+| **NFR-05** (Maintainability) | M00, M03–M13 | All classes in `com.todoapp.*` (`-Xlint:all` clean, zero public API warnings) | Maven Compiler Linting, Javadoc verification |
+| **NFR-06** (Testability) | M03–M08, M12 | Domain, service, repository, storage, controller packages (zero JavaFX imports) | 147 JUnit 5 tests, JaCoCo line coverage > 95% (threshold ≥80%) |
+| **NFR-07** (Threading) | M07, M08, M11, M12 | `AutosaveListener`, `MainController`, `MainView`, `Platform.runLater` | `AutosaveListenerTest`, Threading audit |
