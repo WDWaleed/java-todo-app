@@ -1531,3 +1531,414 @@ Every requirement specified in `docs/requirements.md` was systematically verifie
 | **NFR-05: Maintainability**| MUST | Full codebase adhering to `-Xlint:all` and Javadoc | Maven compiler linting, Javadoc tool verification | 0 warnings | **MET** |
 | **NFR-06: Testability**| MUST | Non-UI packages (`model`, `repository`, `service`, `storage`, `controller`)| 147 JUnit 5 tests, JaCoCo threshold rule ($\ge 80\%$) | 96.63% coverage | **MET** |
 | **NFR-07: Concurrency** | MUST | `AutosaveListener`, `Platform.runLater`, daemon executor | `AutosaveListenerTest`, Threading audit | Background I/O | **MET** |
+
+
+---
+
+## 11. Limitations, Future Work & Conclusion
+
+### 11.1 Limitations & Known Issues
+While the application satisfies 100% of its functional and non-functional requirements, several deliberate architectural boundaries exist:
+1. **Single-User & Local Execution Boundary:** The software is designed as a standalone personal utility. Concurrent multi-user access to a shared network file is not supported and may result in last-write-wins collisions.
+2. **Non-Recurring Tasks:** Tasks currently represent one-off action items. Repeating schedules (daily, weekly, monthly recurrence) are not modeled.
+3. **Plaintext Description Storage:** Task descriptions support standard multi-line strings but do not render rich-text Markdown formatting or embedded hyperlinks.
+4. **Display Requirement for Graphical Harness:** The JavaFX runtime requires a graphical display environment. Launching in pure headless container environments without virtual framebuffers (e.g. Xvfb) exits gracefully with an informative error message.
+
+---
+
+### 11.2 Future Work
+Promising avenues for future expansion include:
+1. **Native OS Reminders & Tray Notifications:** Integrating `java.awt.SystemTray` or platform desktop notification daemons to alert users when a deadline task enters the "due-soon" threshold.
+2. **Recurring Task Engine:** Extending `Task` with a recurrence strategy pattern (`DailyRecurrence`, `WeeklyRecurrence`) that automatically regenerates completed instances upon completion.
+3. **Cloud Synchronization:** Implementing a pluggable `Storage` provider backed by WebDAV, Nextcloud, or a secure RESTful synchronization API.
+4. **Drag-and-Drop Card Reordering:** Supporting manual drag reordering within the task list view using JavaFX drag-and-drop gesture APIs.
+5. **Native Installers via `jpackage`:** Leveraging JDK's `jpackage` utility to produce native Windows `.msi`, macOS `.dmg`, and Linux `.deb` installer bundles with embedded runtimes.
+
+---
+
+### 11.3 Conclusion & Reflection
+The development of the TODO List Desktop Application has provided an invaluable capstone experience synthesizing the theoretical and practical dimensions of the **Software Construction** curriculum:
+- **Reflecting on CLO 2 (Design & Implementation):** Clean object-oriented design is fundamentally about managing complexity and change. By strictly decoupling presentation from domain logic, encapsulating entities behind immutable drafts and defensive copies, and structuring behavior around polymorphism and design patterns, the codebase remained modular, readable, and adaptable throughout all 14 milestones.
+- **Reflecting on CLO 4 (Testing & Version Control):** Engineering confidence cannot be achieved through manual inspection alone. The combination of automated JUnit testing (147 test cases), automated code coverage enforcement (96.63% via JaCoCo), atomic crash resilience, and a disciplined, linear Conventional Commit Git history transformed the repository into an industrial-grade, verifiable software deliverable.
+
+---
+
+## 12. References
+
+1. **Oracle Corporation.** (2023). *Java Platform, Standard Edition Documentation (JDK 17 & 21 LTS)*. Oracle Technology Network. Available at: <https://docs.oracle.com/en/java/javase/17/>
+2. **OpenJFX Community.** (2024). *JavaFX 21 Documentation & API Reference*. Available at: <https://openjfx.io/>
+3. **Google Inc.** (2023). *Gson User Guide: A Java library to convert Java Objects into their JSON representation and vice versa*. GitHub Repository. Available at: <https://github.com/google/gson>
+4. **JUnit Team.** (2024). *JUnit 5 User Guide: The New Major Version of the Programmer-Friendly Testing Framework for Java*. Available at: <https://junit.org/junit5/docs/current/user-guide/>
+5. **Apache Software Foundation.** (2024). *Apache Maven Project Documentation & Maven Shade Plugin*. Available at: <https://maven.apache.org/plugins/maven-shade-plugin/>
+6. **JaCoCo Team.** (2024). *JaCoCo Java Code Coverage Library & Maven Plugin*. Available at: <https://www.jacoco.org/jacoco/>
+7. **Conventional Commits.** (2020). *Conventional Commits 1.0.0: A specification for adding human and machine readable meaning to commit messages*. Available at: <https://www.conventionalcommits.org/en/v1.0.0/>
+8. **Chacon, S., & Straub, B.** (2014). *Pro Git (2nd ed.)*. Apress. Available at: <https://git-scm.com/book/en/v2>
+9. **Gamma, E., Helm, R., Johnson, R., & Vlissides, J.** (1994). *Design Patterns: Elements of Reusable Object-Oriented Software*. Addison-Wesley.
+
+---
+
+## 13. Appendices
+
+### Appendix A: Build & Run Instructions
+```bash
+# 1. Compile, run all 147 tests, and enforce JaCoCo line coverage >= 80%:
+mvn verify
+
+# 2. Run the application with JavaFX Maven plugin:
+mvn javafx:run
+
+# 3. Run with developer sample data seeded:
+mvn javafx:run -Djavafx.args="--seed --data=todo-dev.json"
+
+# 4. Package standalone runnable fat JAR:
+mvn clean package -DskipTests
+
+# 5. Execute the shaded JAR:
+java -jar target/todo-app-1.0.0.jar
+```
+
+---
+
+### Appendix B: Repository Commit Log Excerpt (Chronological)
+Extracted from `docs/report-evidence/git-log.txt`:
+```text
+8182104 2026-11-21 chore: initialize repository with gitignore and editorconfig
+ada2eb3 2026-11-21 build: add maven project with javafx, gson and junit
+fcd5a6d 2026-11-21 feat: add JavaFX application entry point with empty window
+d4fcf08 2026-11-21 docs: add README skeleton and package documentation
+99a9cc2 2026-11-21 docs: mark M00 complete
+de46c5a 2026-11-21 docs(requirements): add scope, personas and user stories
+3c058d1 2026-11-21 docs(requirements): add functional and non-functional requirements
+456426c 2026-11-21 docs(requirements): add use cases and acceptance criteria
+b3117f3 2026-11-21 docs(requirements): add traceability matrix
+1fea83d 2026-11-21 docs: mark M01 complete
+e5b158d 2026-11-21 docs(design): add architecture overview and class diagram
+0819969 2026-11-21 docs(design): add sequence diagrams and checklist state rules
+70053cd 2026-11-21 docs(design): add storage schema, wireframes and design decisions
+9aab8a3 2026-11-21 docs: mark M02 complete
+5d0077b 2026-11-21 feat(model): add Priority, TaskType, ChecklistItem and Category
+4ca5a81 2026-11-21 feat(model): add abstract Task and SimpleTask
+1d036b1 2026-11-21 feat(model): add DeadlineTask and ChecklistTask
+c92b600 2026-11-21 feat(model): add TaskDraft and TaskFactory
+33bf43f 2026-11-21 test(model): cover validation, polymorphism and copy semantics
+2c9b1c3 2026-11-21 docs: mark M03 complete
+d8ac7a1 2026-11-21 feat(repository): add repository interfaces and in-memory implementations
+985e11f 2026-11-21 feat(service): add exceptions and change listener interfaces
+730d9d6 2026-11-21 feat(service): add CategoryService with validation rules
+d15ce0d 2026-11-21 test: cover repositories and CategoryService
+17e3627 2026-11-21 docs: mark M04 complete
+642fc16 2026-11-21 feat(service): add TaskService create, read and update
+499ea00 2026-11-21 feat(service): add delete with undo buffer and complete/priority/pin operations
+c1cc7b7 2026-11-21 feat(service): notify listeners on task changes
+6fe6f5a 2026-11-21 test(service): cover TaskService behavior and error cases
+3842790 2026-11-21 docs: mark M05 complete
+f3e8370 2026-11-21 feat(service): add TaskQuery, StatusFilter and SortOption
+446f4ce 2026-11-21 feat(service): implement filtering, searching and sorting in TaskService
+09a1c8a 2026-11-21 feat(service): add task count helpers for status bar
+0a06a0d 2026-11-21 test(service): cover query engine including ordering invariants
+31d7af5 2026-11-21 docs: mark M06 complete
+511341e 2026-11-21 feat(storage): add AppData and JSON mapper with type discriminator
+536f9a1 2026-11-21 feat(storage): add JsonStorage with atomic save and corrupt file handling
+fbefe56 2026-11-21 feat(storage): add repository sync helper and debounced autosave listener
+72972ca 2026-11-21 test(storage): cover round-trips, corruption and autosave
+911faa4 2026-11-21 docs: mark M07 complete (tag: v0.1.0)
+24b46d0 2026-11-21 feat(controller): add MainController with view state and listeners
+aec8566 2026-11-21 test(controller): cover controller query handling
+54cea55 2026-11-21 feat(ui): add theme constants and stylesheet
+929c4b4 2026-11-21 feat(ui): add main view with toolbar, category pane, task list and status bar
+03dfb4c 2026-11-21 feat: wire application bootstrap with persistence and autosave
+06b3b03 2026-11-21 feat: add optional sample data seeding for development
+dc942c3 2026-11-21 docs: mark M08 complete
+754ff5f 2026-11-22 feat(ui): add polymorphic task card cell
+ba8b6a0 2026-11-22 feat(controller): add create, update, delete and priority handlers
+5d34a4a 2026-11-22 feat(ui): add task editor dialog for creating tasks
+3d2b76b 2026-11-22 feat(ui): support editing tasks and checklist items
+3564dd2 2026-11-22 feat(ui): add delete confirmation, quick priority change and context menu
+0e25152 2026-11-22 test(controller): cover CRUD handlers and error paths
+9dfdc0c 2026-11-22 docs: mark M09 complete (tag: v0.2.0)
+bad88ff 2026-11-22 fix(ui): resolve layout priority collision and get return type in TaskCell
+180e25e 2026-11-22 chore: ignore todo runtime json files
+c504c26 2026-11-22 feat(ui): add category dialog and management controls
+46f6009 2026-11-22 feat(controller): add category handlers
+012a0a4 2026-11-22 feat(ui): complete toolbar with search, sort and filters
+2b9f1a6 2026-11-22 feat(ui): add pin toggle and pinned styling
+f88cc31 2026-11-22 test(controller): cover category and filter state handling
+47cd21f 2026-11-22 docs: mark M10 complete (tag: v0.3.0)
+794f99c 2026-11-22 feat(ui): add undo for deleted tasks
+fa99a74 2026-11-22 feat(ui): add menu bar and about dialog
+a9edcd1 2026-11-22 feat(ui): add keyboard shortcuts
+4e6f13c 2026-11-22 style(ui): polish visuals, tooltips and due-soon highlighting
+e92ef75 2026-11-22 feat(ui): remember window size and position
+f4ececd 2026-11-22 fix(ui): import KeyCode in ToolbarPane
+2383053 2026-11-22 docs: mark M11 complete
+be123c9 2026-11-22 build: enforce coverage threshold with jacoco
+8d09e20 2026-11-22 test: add edge case and integration tests
+e9503e6 2026-11-22 fix(service): propagate clock timestamp during task creation
+40a68c9 2026-11-22 refactor: remove unused code and enable lint cleanup
+b7d85ea 2026-11-22 docs(test-plan): add test strategy and manual GUI test script
+7aab15c 2026-11-22 docs: mark M12 complete
+357e8c7 2026-11-22 build: add shade plugin and release version 1.0.0
+717e053 2026-11-22 docs: complete README with build, run and usage instructions
+1ea0bf9 2026-11-22 docs: add user guide
+1ca5fae 2026-11-22 docs: update design document to match final implementation
+078ad0c 2026-11-22 docs: complete traceability matrix and course mapping
+6c41303 2026-11-22 docs: mark M13 complete (tag: v1.0.0)
+```
+
+---
+
+### Appendix C: Automated Test Suite Inventory
+```text
+Suite: com.todoapp.AppConfigTest (5 tests)
+  - testDefaultDataPath
+  - testParseWithDataFlag
+  - testParseWithSeedFlag
+  - testParseCombinedFlags
+  - testSystemPropertyFallback
+
+Suite: com.todoapp.AppSmokeTest (1 test)
+  - testLauncherClassExists
+
+Suite: com.todoapp.controller.MainControllerTest (29 tests)
+  - testCreateTaskSuccess
+  - testCreateTaskValidationError
+  - testUpdateTaskSuccess
+  - testUpdateTaskNotFound
+  - testDeleteTaskSuccess
+  - testUndoDelete
+  - testToggleComplete
+  - testSetPriority
+  - testTogglePinned
+  - testSelectCategory
+  - testSearchQuery
+  - testSortOption
+  - testStatusFilter
+  - testCreateCategorySuccess
+  - testCreateCategoryDuplicateError
+  - testRenameCategory
+  - testRecolorCategory
+  - testDeleteCategory
+  - testClearFilters
+  - (and 10 boundary tests)
+
+Suite: com.todoapp.DevSeedTest (2 tests)
+  - testSeedPopulatesTasksWhenEmpty
+  - testSeedDoesNotOverwriteExistingData
+
+Suite: com.todoapp.model.TaskModelTest (11 tests)
+  - testSimpleTaskCreationAndCopy
+  - testChecklistTaskSubItemsAndProgress
+  - testChecklistTwoWayCompletion
+  - testDeadlineTaskOverdueCalculation
+  - testTaskDraftValidationRules
+  - testTaskFactoryCreation
+  - (and 5 copy-integrity tests)
+
+Suite: com.todoapp.repository.RepositoryTest (2 tests)
+  - testTaskRepositoryCrudOperations
+  - testCategoryRepositoryCrudOperations
+
+Suite: com.todoapp.service.CategoryServiceTest (8 tests)
+  - testCreateCategory
+  - testRejectDuplicateNameCaseInsensitive
+  - testCannotDeleteDefaultCategory
+  - testDeleteCategoryReassignsTasksToGeneral
+  - testRenameCategory
+  - testRecolorCategory
+  - testCountTasksPerCategory
+  - testListenerExceptionIsolation
+
+Suite: com.todoapp.service.TaskQueryEngineTest (14 tests)
+  - testFilterByCategory
+  - testFilterByStatusActive
+  - testFilterByStatusCompleted
+  - testFilterByPriority
+  - testSearchTextInTitle
+  - testSearchTextInDescription
+  - testSortByDueDate
+  - testSortByPriority
+  - testSortByTitleAlphabetical
+  - testSortByCreatedDate
+  - testPinnedInvariantAcrossAllSorts
+  - (and 3 multi-filter combinations)
+
+Suite: com.todoapp.service.TaskServiceTest (11 tests)
+  - testCreateTask
+  - testUpdateTask
+  - testDeleteTaskWithUndoBuffer
+  - testUndoDeleteRestoresTask
+  - testToggleComplete
+  - testSetPriority
+  - testTogglePinned
+  - testCountActiveAndCompleted
+  - testCountByPriority
+  - testValidationExceptionOnBadDraft
+  - testListenerNotification
+
+Suite: com.todoapp.storage.AutosaveListenerTest (5 tests)
+  - testAutosaveDebounceTrigger
+  - testFlushExecutesImmediately
+  - testErrorCallbackOnStorageFailure
+  - testThreadSafetyUnderRapidMutations
+  - testCloseShutsDownExecutor
+
+Suite: com.todoapp.storage.DataSyncTest (3 tests)
+  - testPopulateRepositories
+  - testSnapshotCreation
+  - testEmptyRepositoriesHandled
+
+Suite: com.todoapp.storage.JsonMapperTest (9 tests)
+  - testSimpleTaskJsonRoundTrip
+  - testChecklistTaskJsonRoundTrip
+  - testDeadlineTaskJsonRoundTrip
+  - testCategoryJsonRoundTrip
+  - testAppDataJsonRoundTrip
+  - testMissingTypeThrowsException
+  - testCorruptJsonHandling
+  - (and 2 field-preservation tests)
+
+Suite: com.todoapp.storage.JsonStorageTest (8 tests)
+  - testAtomicSaveCreatesFile
+  - testAtomicSaveOverwritesExistingSafely
+  - testCorruptFileQuarantinedWithTimestamp
+  - testNonExistentFileReturnsDefaultCategories
+  - testStorageExceptionOnUnwritablePath
+  - (and 3 persistence-integrity tests)
+
+Suite: com.todoapp.EdgeCaseAndIntegrationTest (39 tests)
+  - testPerformanceWith1000Tasks (51 ms)
+  - testUnicodeEmojiTitle
+  - testTitleAtMaxLength (100 chars)
+  - testTitleExceedsMaxLength (Rejected)
+  - testWhitespaceTitleRejected
+  - testNullTitleRejected
+  - testUnwritableDataFileThrowsStorageException
+  - testCorruptFileIsQuarantined
+  - testChecklistWithZeroItems
+  - testChecklistWithMultipleItems
+  - testDeadlinePastIsOverdue
+  - testDeadlineTodayNotOverdue
+  - testDeadlineFutureNotOverdue
+  - testCompletedDeadlineNotOverdue
+  - testFixedClockTimestamps
+  - testRapidRepeatedToggles
+  - testDeleteWhileCategoryFiltered
+  - testEditTaskWhoseCategoryWasDeleted
+  - testCannotDeleteDefaultCategory
+  - testCannotRenameDefaultCategory
+  - (and 19 end-to-end integration scenarios)
+```
+
+---
+
+### Appendix D: JaCoCo Class-by-Class Coverage Detail
+Extracted from `target/site/jacoco/jacoco.csv`:
+
+| Class Name | Package | Lines Covered | Lines Missed | Line Coverage | Complexity Covered | Complexity Missed |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| `Task` | `model` | 71 | 1 | 98.6% | 30 | 7 |
+| `SimpleTask` | `model` | 24 | 0 | 100.0% | 11 | 1 |
+| `ChecklistTask` | `model` | 93 | 5 | 94.9% | 35 | 9 |
+| `ChecklistItem` | `model` | 26 | 0 | 100.0% | 14 | 3 |
+| `DeadlineTask` | `model` | 32 | 0 | 100.0% | 16 | 0 |
+| `Category` | `model` | 30 | 0 | 100.0% | 18 | 2 |
+| `Priority` | `model` | 17 | 0 | 100.0% | 10 | 1 |
+| `TaskType` | `model` | 15 | 0 | 100.0% | 9 | 1 |
+| `TaskDraft` | `model` | 28 | 0 | 100.0% | 16 | 7 |
+| `TaskFactory` | `model` | 41 | 0 | 100.0% | 9 | 1 |
+| `InMemoryTaskRepository` | `repository` | 14 | 0 | 100.0% | 9 | 0 |
+| `InMemoryCategoryRepository` | `repository` | 25 | 0 | 100.0% | 15 | 0 |
+| `TaskService` | `service` | 153 | 4 | 97.4% | 63 | 4 |
+| `CategoryService` | `service` | 77 | 0 | 100.0% | 30 | 2 |
+| `TaskQuery` | `service` | 13 | 0 | 100.0% | 9 | 3 |
+| `SortOption` | `service` | 32 | 1 | 97.0% | 20 | 6 |
+| `StatusFilter` | `service` | 15 | 0 | 100.0% | 9 | 1 |
+| `ChangeType` | `service` | 6 | 0 | 100.0% | 1 | 0 |
+| `ValidationException` | `service` | 4 | 0 | 100.0% | 2 | 0 |
+| `NotFoundException` | `service` | 2 | 2 | 50.0% | 1 | 1 |
+| `JsonStorage` | `storage` | 49 | 16 | 75.4% | 10 | 7 |
+| `JsonMapper` | `storage` | 130 | 4 | 97.0% | 37 | 18 |
+| `AutosaveListener` | `storage` | 63 | 5 | 92.6% | 15 | 6 |
+| `DataSync` | `storage` | 19 | 2 | 90.5% | 6 | 1 |
+| `AppData` | `storage` | 7 | 0 | 100.0% | 5 | 0 |
+| `StorageException` | `storage` | 4 | 0 | 100.0% | 2 | 0 |
+| `MainController` | `controller` | 147 | 4 | 97.4% | 32 | 2 |
+| `ViewState` | `controller` | 9 | 0 | 100.0% | 7 | 1 |
+| `AppConfig` | `com.todoapp` | 25 | 0 | 100.0% | 11 | 6 |
+| `DevSeed` | `com.todoapp` | 92 | 0 | 100.0% | 2 | 0 |
+| **Total Non-UI Aggregate** | | **1,263** | **44** | **96.63%** | **447** | **89** |
+
+---
+
+### Appendix E: Sample Serialized `data.json`
+```json
+{
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "General",
+      "colorHex": "#1976D2"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "name": "Work",
+      "colorHex": "#388E3C"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "name": "Personal",
+      "colorHex": "#D32F2F"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000004",
+      "name": "Shopping",
+      "colorHex": "#F57C00"
+    }
+  ],
+  "tasks": [
+    {
+      "type": "SIMPLE",
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "title": "Prepare presentation slides",
+      "description": "Cover architectural invariants and CLO 2 / CLO 4 outcomes.",
+      "priority": "HIGH",
+      "categoryId": "00000000-0000-0000-0000-000000000002",
+      "completed": false,
+      "pinned": true,
+      "createdAt": "2026-11-22T08:00:00",
+      "updatedAt": "2026-11-22T08:15:00"
+    }
+  ]
+}
+```
+
+---
+
+### Appendix F: Glossary of Technical Terms
+- **Atomic Move:** A filesystem operation guaranteeing that replacement of a file by another is executed as a single uninterruptible transaction, preventing partial file states on crash.
+- **CLO (Course Learning Outcome):** Formal educational competency evaluated by academic accreditation boards.
+- **Conventional Commits:** A formal convention for formatting commit messages to create an explicit, machine-readable history.
+- **Debouncing:** An asynchronous rate-limiting technique that delays task execution until a specified quiet period (e.g. 300 ms) has elapsed without new triggering events.
+- **Defensive Copying:** Creating a distinct, independent clone of an object before returning it to external callers to preserve internal encapsulation.
+- **JaCoCo:** Java Code Coverage library measuring bytecode execution during test suite runs.
+- **Pinned Invariant:** An ordering rule ensuring that pinned entities always occupy the highest positions in a sorted collection regardless of secondary sort criteria.
+- **Polymorphism:** The ability of different domain classes to respond to identical method invocations with subclass-specific behaviors.
+- **Shaded / Fat JAR:** A standalone JAR archive containing compiled project classes together with all unpacked dependency libraries and embedded natives.
+- **Type Discriminator:** A dedicated JSON property (e.g. `"type": "DEADLINE"`) indicating the exact polymorphic subclass during deserialization.
+
+---
+
+### Appendix G: Decision Log Summary
+Consolidated from `implementation.md` Section 9:
+
+| Date | Milestone | Architectural Decision | Rationale |
+|---|---|---|---|
+| 2026-11-21 | M00 | Separate `Launcher` class from `App` | Resolves JavaFX fat JAR module-path bootstrap requirements. |
+| 2026-11-21 | M02 | Classpath configuration (no `module-info.java`) | Avoids JPMS reflection restrictions with Gson and JUnit while Maven handles JavaFX dependencies. |
+| 2026-11-21 | M05 | Return deep copies (`Task.copy()`) in `TaskService` | Enforces entity encapsulation boundary; prevents external callers from corrupting repository state. |
+| 2026-11-21 | M07 | Atomic file replacement (`data.json.tmp` $\rightarrow$ `data.json`) | Protects persistent state against abrupt application termination and power outages. |
+| 2026-11-22 | M11 | Preferences-backed window geometry persistence | Remembers window width, height, position, and maximized state across restarts with off-screen protection. |
+| 2026-11-22 | M12 | Configured `-Xlint:all` within `pom.xml` | Resolves Maven CLI argument parsing conflicts with debug flags. |
+| 2026-11-22 | M12 | Injected `Clock` into `TaskFactory` | Ensures deterministic, time-travel unit testing for creation and update timestamps. |
+| 2026-11-22 | M13 | Shaded runnable JAR with `maven-shade-plugin` | Bundles JavaFX controls and Gson into single executable artifact `todo-app-1.0.0.jar`. |
