@@ -16,6 +16,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -94,8 +95,13 @@ public class TaskCell extends ListCell<Task> {
 
         pinLabel = new Label("📌");
         pinLabel.getStyleClass().add("pinned-indicator");
-        pinLabel.setVisible(false);
-        pinLabel.setManaged(false);
+        pinLabel.setCursor(javafx.scene.Cursor.HAND);
+        pinLabel.setOnMouseClicked(event -> {
+            if (getItem() != null) {
+                controller.onTogglePinned(getItem().getId());
+                event.consume();
+            }
+        });
 
         categoryChip = new Label();
         categoryChip.getStyleClass().add("category-chip");
@@ -180,10 +186,13 @@ public class TaskCell extends ListCell<Task> {
             titleLabel.getStyleClass().add("task-title");
         }
 
-        // 4. Pin indicator
+        // 4. Pin indicator with click toggle
         boolean isPinned = task.isPinned();
-        pinLabel.setVisible(isPinned);
-        pinLabel.setManaged(isPinned);
+        pinLabel.setText(isPinned ? "📌" : "📍");
+        pinLabel.setStyle(isPinned ? "-fx-opacity: 1.0;" : "-fx-opacity: 0.35;");
+        pinLabel.setTooltip(new Tooltip(isPinned ? "Unpin task" : "Pin task to top"));
+        pinLabel.setVisible(true);
+        pinLabel.setManaged(true);
         card.getStyleClass().remove("task-card-pinned");
         if (isPinned) {
             card.getStyleClass().add("task-card-pinned");

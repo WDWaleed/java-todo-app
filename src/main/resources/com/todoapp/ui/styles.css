@@ -176,6 +176,17 @@
 .task-card-pinned {
     -fx-background-color: #fffde7;
     -fx-border-color: #ffe082;
+    -fx-border-width: 1px;
+}
+
+.pinned-indicator {
+    -fx-font-size: 13px;
+    -fx-padding: 0 4px;
+    -fx-cursor: hand;
+}
+
+.pinned-indicator:hover {
+    -fx-opacity: 1.0 !important;
 }
 
 .task-priority-stripe {
