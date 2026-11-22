@@ -120,6 +120,25 @@ public class TaskCell extends ListCell<Task> {
         detailsRow.getChildren().addAll(summaryLabel, overdueLabel, progressBar);
 
         card.getChildren().addAll(header, detailsRow);
+
+        // Double-click to open edit dialog per M09.3
+        setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && getItem() != null) {
+                openEditDialog(getItem());
+            }
+        });
+    }
+
+    private void openEditDialog(Task task) {
+        if (task == null) return;
+        Optional<Task> currentOpt = controller.getTaskService().get(task.getId());
+        if (currentOpt.isEmpty()) {
+            controller.setInfoMessage("Task was removed or is no longer available.");
+            controller.refresh();
+            return;
+        }
+        TaskEditorDialog dialog = new TaskEditorDialog(controller, currentOpt.get());
+        dialog.showAndWait();
     }
 
     @Override

@@ -264,10 +264,11 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
 
         // Populate existing type-specific values if in edit mode
         if (existingTask != null) {
-            if (existingTask.getType() == TaskType.DEADLINE && existingTask.getDueDate().isPresent()) {
-                dueDatePicker.setValue(existingTask.getDueDate().get());
-            } else if (existingTask.getType() == TaskType.CHECKLIST) {
-                // Checklist items will be populated in M09.3 edit mode
+            existingTask.getDueDate().ifPresent(dueDatePicker::setValue);
+            if (existingTask instanceof com.todoapp.model.ChecklistTask checklistTask) {
+                for (com.todoapp.model.ChecklistItem item : checklistTask.getItems()) {
+                    checklistItemsList.add(item.getText());
+                }
             }
         }
 
