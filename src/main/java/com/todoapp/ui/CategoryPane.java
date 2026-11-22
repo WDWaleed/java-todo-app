@@ -7,7 +7,9 @@ import com.todoapp.service.TaskService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -117,6 +119,71 @@ public class CategoryPane extends VBox {
         deleteBtn = new Button("Delete");
         deleteBtn.getStyleClass().add("category-action-button");
         deleteBtn.setTooltip(new javafx.scene.control.Tooltip("Delete Category"));
+
+        // Button action handlers
+        addBtn.setOnAction(e -> {
+            CategoryDialog dialog = new CategoryDialog();
+            dialog.showAndWait().ifPresent(data -> controller.onCreateCategory(data.name(), data.colorHex()));
+        });
+
+        renameBtn.setOnAction(e -> {
+            CategoryEntry selected = listView.getSelectionModel().getSelectedItem();
+            if (selected != null && !selected.isAll() && !Category.DEFAULT_ID.equals(selected.id())) {
+                Category current;
+                try {
+                    current = controller.getCategoryService().get(selected.id());
+                } catch (Exception ex) {
+                    controller.setErrorMessage("Category not found");
+                    return;
+                }
+                CategoryDialog dialog = new CategoryDialog(current);
+                dialog.showAndWait().ifPresent(data -> {
+                    if (!data.name().equals(current.getName())) {
+                        controller.onRenameCategory(current.getId(), data.name());
+                    }
+                    if (!data.colorHex().equalsIgnoreCase(current.getColorHex())) {
+                        controller.onRecolorCategory(current.getId(), data.colorHex());
+                    }
+                });
+            }
+        });
+
+        recolorBtn.setOnAction(e -> {
+            CategoryEntry selected = listView.getSelectionModel().getSelectedItem();
+            if (selected != null && !selected.isAll()) {
+                Category current;
+                try {
+                    current = controller.getCategoryService().get(selected.id());
+                } catch (Exception ex) {
+                    controller.setErrorMessage("Category not found");
+                    return;
+                }
+                CategoryDialog dialog = new CategoryDialog(current);
+                dialog.showAndWait().ifPresent(data -> {
+                    if (!Category.DEFAULT_ID.equals(current.getId()) && !data.name().equals(current.getName())) {
+                        controller.onRenameCategory(current.getId(), data.name());
+                    }
+                    if (!data.colorHex().equalsIgnoreCase(current.getColorHex())) {
+                        controller.onRecolorCategory(current.getId(), data.colorHex());
+                    }
+                });
+            }
+        });
+
+        deleteBtn.setOnAction(e -> {
+            CategoryEntry selected = listView.getSelectionModel().getSelectedItem();
+            if (selected != null && !selected.isAll() && !Category.DEFAULT_ID.equals(selected.id())) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Delete Category");
+                alert.setHeaderText("Delete '" + selected.name() + "'?");
+                alert.setContentText(selected.count() + " task(s) will move to General.");
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.OK) {
+                        controller.onDeleteCategory(selected.id());
+                    }
+                });
+            }
+        });
 
         HBox.setHgrow(addBtn, javafx.scene.layout.Priority.NEVER);
         HBox.setHgrow(renameBtn, javafx.scene.layout.Priority.ALWAYS);

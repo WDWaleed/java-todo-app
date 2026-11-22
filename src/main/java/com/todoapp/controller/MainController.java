@@ -334,4 +334,87 @@ public class MainController {
             refresh();
         }
     }
+
+    /**
+     * Creates a new category.
+     *
+     * @param name     category name
+     * @param colorHex hex color code (#RRGGBB)
+     * @return Optional containing created category, or empty if validation failed
+     */
+    public Optional<Category> onCreateCategory(String name, String colorHex) {
+        try {
+            Category created = categoryService.create(name, colorHex);
+            this.currentState = currentState.withInfoMessage("Category created: " + created.getName());
+            refresh();
+            return Optional.of(created);
+        } catch (ValidationException | IllegalArgumentException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Renames an existing category.
+     *
+     * @param id      category UUID
+     * @param newName new name
+     * @return Optional containing updated category, or empty if validation/lookup failed
+     */
+    public Optional<Category> onRenameCategory(UUID id, String newName) {
+        try {
+            Category updated = categoryService.rename(id, newName);
+            this.currentState = currentState.withInfoMessage("Category renamed: " + updated.getName());
+            refresh();
+            return Optional.of(updated);
+        } catch (NotFoundException | ValidationException | IllegalArgumentException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Updates the color code of an existing category.
+     *
+     * @param id          category UUID
+     * @param newColorHex new hex color string
+     * @return Optional containing updated category, or empty if validation/lookup failed
+     */
+    public Optional<Category> onRecolorCategory(UUID id, String newColorHex) {
+        try {
+            Category updated = categoryService.recolor(id, newColorHex);
+            this.currentState = currentState.withInfoMessage("Category recolored: " + updated.getName());
+            refresh();
+            return Optional.of(updated);
+        } catch (NotFoundException | ValidationException | IllegalArgumentException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Deletes a category and reassigns its tasks to General.
+     * If the deleted category was currently selected, selection falls back to All.
+     *
+     * @param id category UUID to delete
+     * @return true if deleted, false if validation/lookup failed
+     */
+    public boolean onDeleteCategory(UUID id) {
+        try {
+            Category deleted = categoryService.delete(id);
+            if (currentState.query().categoryId() != null && currentState.query().categoryId().equals(id)) {
+                this.currentState = currentState.withQuery(currentState.query().withCategory(null));
+            }
+            this.currentState = currentState.withInfoMessage("Category deleted: " + deleted.getName());
+            refresh();
+            return true;
+        } catch (NotFoundException | ValidationException | IllegalArgumentException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return false;
+        }
+    }
 }
