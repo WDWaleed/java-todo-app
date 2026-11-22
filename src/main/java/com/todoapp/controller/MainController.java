@@ -3,15 +3,19 @@ package com.todoapp.controller;
 import com.todoapp.model.Category;
 import com.todoapp.model.Priority;
 import com.todoapp.model.Task;
+import com.todoapp.model.TaskDraft;
 import com.todoapp.service.CategoryService;
 import com.todoapp.service.ChangeType;
+import com.todoapp.service.NotFoundException;
 import com.todoapp.service.SortOption;
 import com.todoapp.service.StatusFilter;
 import com.todoapp.service.TaskService;
+import com.todoapp.service.ValidationException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -194,5 +198,140 @@ public class MainController {
     public void clearMessages() {
         this.currentState = currentState.clearMessages();
         refresh();
+    }
+
+    /**
+     * Creates a new task from the submitted draft.
+     * Catches validation exceptions, updates view state error message, and triggers refresh.
+     *
+     * @param draft non-null task draft
+     * @return Optional containing created task, or empty if validation failed
+     */
+    public Optional<Task> onCreateTask(TaskDraft draft) {
+        try {
+            Task created = taskService.create(draft);
+            this.currentState = currentState.withSelectedTaskId(created.getId())
+                    .withInfoMessage("Task created: " + created.getTitle());
+            refresh();
+            return Optional.of(created);
+        } catch (ValidationException | IllegalArgumentException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Updates an existing task with new draft content.
+     * Catches validation or not-found exceptions, updates view state error message, and triggers refresh.
+     *
+     * @param id    target task UUID
+     * @param draft non-null updated task draft
+     * @return Optional containing updated task, or empty if validation/lookup failed
+     */
+    public Optional<Task> onUpdateTask(UUID id, TaskDraft draft) {
+        try {
+            Task updated = taskService.update(id, draft);
+            this.currentState = currentState.withSelectedTaskId(updated.getId())
+                    .withInfoMessage("Task updated: " + updated.getTitle());
+            refresh();
+            return Optional.of(updated);
+        } catch (NotFoundException | ValidationException | IllegalArgumentException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Deletes a task by ID, buffering it for undo.
+     *
+     * @param id target task UUID
+     * @return true if deleted, false if not found
+     */
+    public boolean onDeleteTask(UUID id) {
+        try {
+            Task deleted = taskService.delete(id);
+            this.currentState = currentState.withSelectedTaskId(null)
+                    .withInfoMessage("Task deleted: " + deleted.getTitle() + " — Undo");
+            refresh();
+            return true;
+        } catch (NotFoundException | ValidationException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return false;
+        }
+    }
+
+    /**
+     * Restores the most recently deleted task from the undo buffer.
+     *
+     * @return Optional containing restored task, or empty if buffer was empty
+     */
+    public Optional<Task> onUndoDelete() {
+        try {
+            Optional<Task> restored = taskService.undoDelete();
+            if (restored.isPresent()) {
+                this.currentState = currentState.withSelectedTaskId(restored.get().getId())
+                        .withInfoMessage("Task restored: " + restored.get().getTitle());
+            } else {
+                this.currentState = currentState.withInfoMessage("Nothing to undo");
+            }
+            refresh();
+            return restored;
+        } catch (Exception e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Toggles the completion status of a task.
+     *
+     * @param id target task UUID
+     */
+    public void onToggleComplete(UUID id) {
+        try {
+            taskService.toggleComplete(id);
+            this.currentState = currentState.clearMessages();
+            refresh();
+        } catch (NotFoundException | ValidationException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+        }
+    }
+
+    /**
+     * Updates the priority level of a task.
+     *
+     * @param id       target task UUID
+     * @param priority new priority level
+     */
+    public void onSetPriority(UUID id, Priority priority) {
+        try {
+            taskService.setPriority(id, priority);
+            this.currentState = currentState.clearMessages();
+            refresh();
+        } catch (NotFoundException | ValidationException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+        }
+    }
+
+    /**
+     * Toggles the pinned status of a task.
+     *
+     * @param id target task UUID
+     */
+    public void onTogglePinned(UUID id) {
+        try {
+            taskService.togglePinned(id);
+            this.currentState = currentState.clearMessages();
+            refresh();
+        } catch (NotFoundException | ValidationException e) {
+            this.currentState = currentState.withErrorMessage(e.getMessage());
+            refresh();
+        }
     }
 }
