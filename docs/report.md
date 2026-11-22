@@ -1,23 +1,68 @@
-# Software Construction — Open-Ended Lab (OEL)
-# Final Project Report: TODO List Desktop Application
+# TODO List Desktop Application
+## Final Project Report
 
 ---
 
-## Metadata & Title Page
+**Course Title:** Software Construction (CS-311 / 5th Semester)  
+**Academic Term:** Fall 2026  
+**Release Version:** v1.0.0 (Release Tag: `v1.0.0`)  
+**Date of Submission:** November 22, 2026  
 
-- **Project Title:** Modern Offline-First TODO List Desktop Application
-- **Course Title:** Software Construction (CS-311 / 5th Semester)
-- **Academic Term:** Fall 2026
-- **Release Version:** v1.0.0 (Release Tag: `v1.0.0`)
-- **Date of Submission:** November 22, 2026
-- **Author / Student Name:** [TO BE FILLED BY AUTHOR]
-- **Roll Number / Student ID:** [TO BE FILLED BY AUTHOR]
-- **Laboratory Instructor:** [TO BE FILLED BY AUTHOR]
-- **Repository Path:** `d:\University\5th Semester\Software Construction\Lab\OEL`
+**Author / Student Name:** [TO BE FILLED BY AUTHOR]  
+**Roll Number / Student ID:** [TO BE FILLED BY AUTHOR]  
+**Laboratory Instructor:** [TO BE FILLED BY AUTHOR]  
+**Repository Path:** `d:\University\5th Semester\Software Construction\Lab\OEL`  
+
+\
+\
+\
+\
+*(First page reserved for Title / Cover Page)*
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+<div style="page-break-after: always;"></div>
+
+## Table of Contents
+
+- [Screenshots Checklist](#screenshots-checklist)
+- [1. Abstract](#1-abstract)
+- [2. Introduction](#2-introduction)
+  - [2.1 Background & Objectives](#21-background--objectives)
+  - [2.2 Technology Stack](#22-technology-stack)
+- [3. Requirements Analysis](#3-requirements-analysis)
+  - [3.1 User Personas & Scenarios](#31-user-personas--scenarios)
+  - [3.2 Functional Requirements (FR-01 to FR-17)](#32-functional-requirements-fr-01-to-fr-17)
+  - [3.3 Non-Functional Requirements (NFR-01 to NFR-07)](#33-non-functional-requirements-nfr-01-to-nfr-07)
+- [4. System Architecture & Detailed Design](#4-system-architecture--detailed-design)
+  - [4.1 Layered Architecture Overview](#41-layered-architecture-overview)
+  - [4.2 Package Structure](#42-package-structure)
+  - [4.3 Data Structures Rationale](#43-data-structures-rationale)
+  - [4.4 Design Patterns Applied](#44-design-patterns-applied)
+- [5. Object-Oriented Programming (OOP) Concepts Demonstrated](#5-object-oriented-programming-oop-concepts-demonstrated)
+- [6. Graphical User Interface (GUI) Walkthrough](#6-graphical-user-interface-gui-walkthrough)
+  - [6.1 Main Window Dashboard](#61-main-window-dashboard)
+  - [6.2 Creating & Managing Tasks](#62-creating--managing-tasks)
+  - [6.3 Task Cards, Priority Stripes & Urgency Badges](#63-task-cards-priority-stripes--urgency-badges)
+  - [6.4 Category Management & Filtering](#64-category-management--filtering)
+  - [6.5 Deletion, Undo & Help Dialogs](#65-deletion-undo--help-dialogs)
+  - [6.6 Keyboard Shortcuts Reference](#66-keyboard-shortcuts-reference)
+- [7. Version Control with Git](#7-version-control-with-git)
+  - [7.1 Branching Strategy & Workflow](#71-branching-strategy--workflow)
+  - [7.2 Commit Distribution & Tags](#72-commit-distribution--tags)
+- [8. Limitations, Future Work & Conclusion](#8-limitations-future-work--conclusion)
+  - [8.1 Limitations & Future Work](#81-limitations--future-work)
+  - [8.2 Conclusion & Reflections](#82-conclusion--reflections)
+- [9. References](#9-references)
+- [10. Appendices](#10-appendices)
+  - [Appendix A: Build & Run Commands](#appendix-a-build--run-commands)
+  - [Appendix B: Sample Serialized data.json](#appendix-b-sample-serialized-datajson)
+  - [Appendix C: Glossary of Technical Terms](#appendix-c-glossary-of-technical-terms)
 
 ---
 
-## Screenshots Checklist (For Manual Author Insertion)
+## Screenshots Checklist
 
 Below is the inventory of screenshots to be inserted by the author into `docs/img/`:
 
@@ -34,7 +79,10 @@ Below is the inventory of screenshots to be inserted by the author into `docs/im
 | 9 | `docs/img/09-about-dialog.png` | "About TODO App" dialog (`Help ▸ About TODO App`). | `[SCREENSHOT NEEDED: About dialog]` |
 | 10 | `docs/img/10-shortcuts-dialog.png` | Keyboard Shortcuts help dialog (`Help ▸ Keyboard Shortcuts`). | `[SCREENSHOT NEEDED: Keyboard Shortcuts dialog]` |
 
----
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+<div style="page-break-after: always;"></div>
 
 ## 1. Abstract
 
@@ -60,16 +108,6 @@ Key engineering goals included:
 - **Serialization:** Google Gson 2.10.1 (Type discriminator mapping)
 - **Testing & Coverage:** JUnit Jupiter 5.10.2, JaCoCo Maven Plugin 0.8.11
 - **Version Control:** Git 2.30+ (Single-branch linear history on `main`)
-
-### 2.3 Course Learning Outcomes & Assignment Mapping
-
-| Assignment Task | Educational Focus | CLO Alignment | Relevant Report Chapter |
-|---|---|:---:|---|
-| **Task 1** | Requirements Gathering, Analysis & Specification | CLO 2, CLO 4 | [Chapter 3: Requirements Analysis](#3-requirements-analysis) |
-| **Task 2** | Architecture & Detailed System Design | CLO 2 | [Chapter 4: System Architecture & Detailed Design](#4-system-architecture--detailed-design) |
-| **Task 3** | Object-Oriented Implementation & GUI | CLO 2 | [Chapters 5, 6 & 7](#5-implementation-overview) |
-| **Task 4** | Testing, Edge Cases & Quality Assurance | CLO 4 | [Chapter 8: Testing & Quality Assurance](#8-testing--quality-assurance) |
-| **Task 5** | Version Control, Git Workflow & Lifecycle Tracking | CLO 4 | [Chapter 9: Version Control with Git](#9-version-control-with-git) |
 
 ---
 
@@ -172,43 +210,7 @@ The application follows a strictly layered, unidirectional architectural pattern
 
 ---
 
-## 5. Implementation Overview
-
-### 5.1 Milestone Roadmap & Development Narrative
-The project was constructed across 14 systematic milestones:
-
-| Milestone | Scope & Deliverables | Release Tag |
-|---|---|:---:|
-| **M00** | Maven build setup, JavaFX 21 configuration, repository initialization | — |
-| **M01** | Software requirements specification, 14 user scenarios, traceability matrix | — |
-| **M02** | Layered architecture design, class diagrams, JSON schema specification | — |
-| **M03** | Domain model hierarchy, `TaskDraft`, `TaskFactory`, copy semantics | — |
-| **M04** | Repositories, `CategoryService`, unique naming and reassignment rules | — |
-| **M05** | `TaskService` CRUD, single-slot undo buffer, mutation listeners | — |
-| **M06** | Query engine, multi-criteria filtering, composite sort with pin invariant | — |
-| **M07** | Persistence layer, atomic file writing, debounced background autosave | `v0.1.0` |
-| **M08** | JavaFX GUI foundation, `MainView`, toolbar, category pane, task list | — |
-| **M09** | Task CRUD in GUI, `TaskEditorDialog`, custom `TaskCell`, context menus | `v0.2.0` |
-| **M10** | Category management in GUI, dynamic count badges, live filter bindings | `v0.3.0` |
-| **M11** | UI polish, undo toast banner, menu bar, shortcuts, window geometry save | — |
-| **M12** | Hardening, JaCoCo threshold enforcement ($\ge 80\%$), edge case tests | — |
-| **M13** | Packaging, runnable shaded fat JAR, README, user guide, course mapping | `v1.0.0` |
-| **M14** | Final project report compilation and document exports (DOCX/HTML) | — |
-
-### 5.2 Key Architectural Highlights
-- **Polymorphic Task Hierarchy:** Abstract `Task` defines contracts (`getType()`, `getProgress()`, `isOverdue()`, `copy()`). Subclasses implement specialized behaviors without generic consumers needing subtype-specific branching.
-- **Atomic Persistence:** `JsonStorage` writes serialized data to `data.json.tmp` first, followed by an atomic filesystem move (`StandardCopyOption.ATOMIC_MOVE`). Malformed files are automatically quarantined to `data.json.corrupt-<timestamp>`.
-- **Debounced Autosave:** `AutosaveListener` buffers state mutations and flushes to disk after 300 ms of inactivity on a dedicated daemon thread, eliminating UI lag.
-- **Fail-Fast Validation:** `TaskDraft.validate()` enforces title length (1–100 characters), non-null categories, and mandatory deadline dates before entities reach repositories.
-
-### 5.3 Difficulties Encountered & Solutions
-- **JavaFX Shaded JAR Bootstrap:** JavaFX blocks fat JAR execution if the main class extends `Application`. Resolved by introducing `Launcher.java` as a standalone entry point.
-- **Compiler Linting Conflicts:** Passing `-Xlint:all` on the CLI caused Maven to trigger debug mode. Resolved by moving lint arguments into `pom.xml` under `<compilerArgs>`.
-- **Clock Timestamp Propagation:** Direct calls to `LocalDateTime.now()` bypassed injected clocks during time-travel tests. Resolved by refactoring `TaskFactory.create(draft, now)` to take clock timestamps explicitly.
-
----
-
-## 6. Object-Oriented Programming (OOP) Concepts Demonstrated
+## 5. Object-Oriented Programming (OOP) Concepts Demonstrated
 
 | OOP Concept | Target Class & File Path | Implementation Summary |
 |---|---|---|
@@ -221,9 +223,9 @@ The project was constructed across 14 systematic milestones:
 
 ---
 
-## 7. Graphical User Interface (GUI) Walkthrough
+## 6. Graphical User Interface (GUI) Walkthrough
 
-### 7.1 Main Window Dashboard
+### 6.1 Main Window Dashboard
 The primary interface provides a three-pane layout: a top toolbar, a left category navigation sidebar, a central task card list, and a bottom status bar.
 
 > **[SCREENSHOT NEEDED: docs/img/01-main-window.png]**  
@@ -231,7 +233,7 @@ The primary interface provides a three-pane layout: a top toolbar, a left catego
 
 ![Main Window Dashboard](img/01-main-window.png)
 
-### 7.2 Creating & Managing Tasks
+### 6.2 Creating & Managing Tasks
 Clicking **+ New Task** or pressing `Ctrl+N` opens the `TaskEditorDialog`.
 
 > **[SCREENSHOT NEEDED: docs/img/02-task-simple.png]**  
@@ -249,7 +251,7 @@ Clicking **+ New Task** or pressing `Ctrl+N` opens the `TaskEditorDialog`.
 
 ![Deadline Task Creation](img/04-task-deadline.png)
 
-### 7.3 Task Cards, Priority Stripes & Urgency Badges
+### 6.3 Task Cards, Priority Stripes & Urgency Badges
 Custom `TaskCell` cards display vertical priority stripes (Red = High, Amber = Medium, Green = Low), gold pin badges, category chips, and deadline status tags.
 
 > **[SCREENSHOT NEEDED: docs/img/05-card-highlights.png]**  
@@ -257,7 +259,7 @@ Custom `TaskCell` cards display vertical priority stripes (Red = High, Amber = M
 
 ![Task Card Visual Indicators](img/05-card-highlights.png)
 
-### 7.4 Category Management & Filtering
+### 6.4 Category Management & Filtering
 The category sidebar allows filtering by category with real-time item counts. Deleting a category automatically reassigns member tasks to `General`.
 
 > **[SCREENSHOT NEEDED: docs/img/06-category-dialog.png]**  
@@ -270,7 +272,7 @@ The category sidebar allows filtering by category with real-time item counts. De
 
 ![Live Search and Filtering](img/07-search-filter.png)
 
-### 7.5 Deletion, Undo & Help Dialogs
+### 6.5 Deletion, Undo & Help Dialogs
 Deleting a task prompts confirmation and triggers a floating 5-second undo toast banner.
 
 > **[SCREENSHOT NEEDED: docs/img/08-undo-toast.png]**  
@@ -288,7 +290,7 @@ Deleting a task prompts confirmation and triggers a floating 5-second undo toast
 
 ![Keyboard Shortcuts Dialog](img/10-shortcuts-dialog.png)
 
-### 7.6 Keyboard Shortcuts Reference
+### 6.6 Keyboard Shortcuts Reference
 
 | Shortcut | Action Triggered | Scope / Focus |
 |---|---|---|
@@ -302,58 +304,15 @@ Deleting a task prompts confirmation and triggers a floating 5-second undo toast
 
 ---
 
-## 8. Testing & Quality Assurance
+## 7. Version Control with Git
 
-### 8.1 Automated Test Suite Summary
-The automated test suite comprises **14 test classes containing 147 test cases**, executing in **0.93 seconds** with a 100% pass rate:
-
-| Test Class | Package | Tests | Failures | Errors | Execution Time | Focus Area |
-|---|---|:---:|:---:|:---:|:---:|---|
-| `AppConfigTest` | `com.todoapp` | 5 | 0 | 0 | 0.071 s | CLI arguments and system property parsing |
-| `AppSmokeTest` | `com.todoapp` | 1 | 0 | 0 | 0.002 s | Application bootstrap verification |
-| `DevSeedTest` | `com.todoapp` | 2 | 0 | 0 | 0.010 s | Sample data population |
-| `TaskModelTest` | `model` | 11 | 0 | 0 | 0.083 s | Polymorphic methods, checklist ratios, copy |
-| `RepositoryTest` | `repository` | 2 | 0 | 0 | 0.006 s | In-memory CRUD operations |
-| `CategoryServiceTest` | `service` | 8 | 0 | 0 | 0.028 s | Category uniqueness and reassignment rules |
-| `TaskServiceTest` | `service` | 11 | 0 | 0 | 0.028 s | CRUD, priority, pin, and undo buffer |
-| `TaskQueryEngineTest` | `service` | 14 | 0 | 0 | 0.042 s | Filtering, search, and sorting invariants |
-| `JsonMapperTest` | `storage` | 9 | 0 | 0 | 0.022 s | Polymorphic JSON serialization |
-| `JsonStorageTest` | `storage` | 8 | 0 | 0 | 0.058 s | Atomic save and corruption quarantine |
-| `DataSyncTest` | `storage` | 3 | 0 | 0 | 0.005 s | Snapshot and population utility |
-| `AutosaveListenerTest` | `storage` | 5 | 0 | 0 | 0.172 s | Debounced background thread save |
-| `MainControllerTest` | `controller` | 29 | 0 | 0 | 0.190 s | UI gesture dispatch and error handling |
-| `EdgeCaseAndIntegrationTest` | `com.todoapp` | 39 | 0 | 0 | 0.213 s | Boundaries, Unicode, read-only disk, perf |
-| **Total Test Suite** | **14 Classes** | **147** | **0** | **0** | **0.930 s** | **100% PASS** |
-
-### 8.2 Code Coverage Breakdown (JaCoCo)
-Automated verification enforces a mandatory threshold of $\ge 80\%$ line coverage across non-UI packages:
-
-| Package | Total Lines | Covered Lines | Missed Lines | Line Coverage | Branch Coverage |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `com.todoapp.model` | 383 | 377 | 6 | **98.43%** | 93.3% |
-| `com.todoapp.repository` | 39 | 39 | 0 | **100.00%** | 100.0% |
-| `com.todoapp.service` | 309 | 302 | 7 | **97.73%** | 91.8% |
-| `com.todoapp.storage` | 299 | 272 | 27 | **90.97%** | 78.4% |
-| `com.todoapp.controller` | 160 | 156 | 4 | **97.50%** | 75.0% |
-| `com.todoapp` (Config & Seed) | 117 | 117 | 0 | **100.00%** | 77.8% |
-| **Total Non-UI Aggregate** | **1,307** | **1,263** | **44** | **96.63%** | **87.2%** |
-
-### 8.3 Performance & Manual Verification Results
-- **NFR-02 Performance:** Querying and sorting 1,000 tasks executed in **51 ms**, well within the $<100\text{ ms}$ threshold.
-- **Manual Verification:** All 16 manual test scenarios (`TC-01` through `TC-16`) passed completely, confirming visual layouts, keyboard shortcuts, priority stripes, and window geometry persistence across restarts.
-- **Static Quality:** Zero compiler warnings under `-Xlint:all`; zero Javadoc errors; zero unhandled `System.out` calls.
-
----
-
-## 9. Version Control with Git
-
-### 9.1 Branching Strategy & Workflow
+### 7.1 Branching Strategy & Workflow
 The repository adhered to a disciplined, strictly linear workflow directly on `main`:
 - **Single-Branch Model:** No long-lived feature branches, avoiding merge conflicts and synchronization overhead.
 - **Zero Merge Commits:** Every change was committed chronologically, maintaining a clean, bisectable history.
 - **Conventional Commits:** All 81 commits follow the Conventional Commits specification.
 
-### 9.2 Commit Distribution & Tags
+### 7.2 Commit Distribution & Tags
 
 | Commit Type | Count | Percentage | Primary Focus Area |
 |---|:---:|:---:|---|
@@ -373,51 +332,20 @@ The repository adhered to a disciplined, strictly linear workflow directly on `m
 
 ---
 
-## 10. Evaluation Against Requirements
+## 8. Limitations, Future Work & Conclusion
 
-| Requirement ID & Title | MoSCoW | Implementing Classes | Verification Evidence | Status |
-|---|:---:|---|---|:---:|
-| **FR-01: Create Task** | MUST | `TaskDraft`, `TaskFactory`, `TaskService`, `TaskEditorDialog` | `TaskModelTest`, TC-01 | **MET** |
-| **FR-02: Read Task** | MUST | `Task`, `TaskService`, `TaskListPane`, `TaskCell` | `TaskServiceTest`, TC-02 | **MET** |
-| **FR-03: Update Task** | MUST | `Task`, `TaskFactory`, `TaskService`, `TaskEditorDialog` | `TaskServiceTest`, TC-03 | **MET** |
-| **FR-04: Delete Task** | MUST | `TaskService`, `InMemoryTaskRepository`, `TaskCell` | `TaskServiceTest`, TC-04 | **MET** |
-| **FR-05: Mark Complete** | MUST | `Task`, `ChecklistTask`, `TaskService`, `TaskCell` | `TaskModelTest`, TC-05 | **MET** |
-| **FR-06: Prioritize** | MUST | `Priority`, `Task`, `TaskService`, `TaskCell` | `TaskServiceTest`, TC-06 | **MET** |
-| **FR-07: Sort Tasks** | MUST | `SortOption`, `TaskQuery`, `TaskService`, `ToolbarPane` | `TaskQueryEngineTest`, TC-07 | **MET** |
-| **FR-08: Categories** | MUST | `Category`, `CategoryRepository`, `CategoryService`, `CategoryPane` | `CategoryServiceTest`, TC-08 | **MET** |
-| **FR-09: Filter Tasks** | MUST | `StatusFilter`, `TaskQuery`, `TaskService`, `ToolbarPane` | `TaskQueryEngineTest`, TC-09 | **MET** |
-| **FR-10: Search Tasks** | MUST | `TaskQuery`, `TaskService`, `ToolbarPane` | `TaskQueryEngineTest`, TC-10 | **MET** |
-| **FR-11: Checklist Tasks**| SHOULD | `ChecklistItem`, `ChecklistTask`, `JsonMapper`, `TaskEditorDialog`| `TaskModelTest`, TC-01 | **MET** |
-| **FR-12: Deadline Tasks** | SHOULD | `DeadlineTask`, `JsonMapper`, `TaskEditorDialog`, `TaskCell` | `TaskModelTest`, TC-11 | **MET** |
-| **FR-13: Persistence** | MUST | `JsonStorage`, `JsonMapper`, `AppData`, `AutosaveListener` | `JsonStorageTest`, TC-12 | **MET** |
-| **FR-14: Pin Tasks** | SHOULD | `Task`, `TaskService`, `TaskCell` | `TaskQueryEngineTest`, TC-07 | **MET** |
-| **FR-15: Undo Delete** | SHOULD | `TaskService`, `MainController`, `MainView`, `AppMenuBar` | `TaskServiceTest`, TC-13 | **MET** |
-| **FR-16: Shortcuts** | SHOULD | `App`, `AppMenuBar`, `TaskListPane`, `ToolbarPane` | `AppSmokeTest`, TC-14 | **MET** |
-| **FR-17: Validation** | MUST | `TaskDraft`, `TaskService`, `CategoryService`, `ValidationException`| `TaskModelTest`, TC-15 | **MET** |
-| **NFR-01: Usability** | MUST | `MainView`, `TaskCell`, `Theme`, `StatusBar` | CSS styling, TC-16 | **MET** |
-| **NFR-02: Performance**| MUST | `TaskService`, `TaskQuery`, `JsonStorage` | 51 ms query benchmark | **MET** |
-| **NFR-03: Reliability**| MUST | `JsonStorage`, `AutosaveListener`, `StorageException` | Atomic file replace | **MET** |
-| **NFR-04: Portability**| MUST | `Launcher`, `App`, `AppConfig`, `pom.xml` | Shaded fat JAR | **MET** |
-| **NFR-05: Maintainability**| MUST | Full codebase adhering to `-Xlint:all` and Javadoc | 0 warnings, clean Javadoc | **MET** |
-| **NFR-06: Testability**| MUST | Non-UI domain, service, repository, storage, and controller | 96.63% line coverage | **MET** |
-| **NFR-07: Concurrency** | MUST | `AutosaveListener`, `Platform.runLater`, daemon executor | Background persistence | **MET** |
-
----
-
-## 11. Limitations, Future Work & Conclusion
-
-### 11.1 Limitations & Future Work
+### 8.1 Limitations & Future Work
 - **Limitations:** Single-user local file scope; non-recurring tasks; plaintext descriptions without Markdown rendering; display requirement for the JavaFX GUI runtime.
 - **Future Work:** Native desktop tray reminders via `java.awt.SystemTray`; recurring schedule engine (daily/weekly recurrence); cloud synchronization via WebDAV/REST; drag-and-drop card reordering; platform-specific installers via `jpackage` (`.msi`, `.dmg`, `.deb`).
 
-### 11.2 Conclusion & Reflections
+### 8.2 Conclusion & Reflections
 The project successfully realized all architectural, functional, and quality objectives:
-- **Reflecting on CLO 2:** Clean architecture and object-oriented principles (encapsulation, inheritance, polymorphism, and design patterns) established a maintainable, extensible software core.
-- **Reflecting on CLO 4:** Comprehensive automated testing (147 tests), high code coverage (96.63%), atomic crash resilience, and disciplined Git version control guaranteed an industrial-standard deliverable.
+- **Clean Architecture & OOP:** Strict separation of concerns, entity encapsulation, polymorphism, and established design patterns delivered a robust and extensible software solution.
+- **Quality Assurance & Verification:** 147 automated unit tests, 96.63% line coverage, atomic file reliability, and disciplined version control produced an industrial-standard deliverable.
 
 ---
 
-## 12. References
+## 9. References
 
 1. Oracle Corporation. (2023). *Java Platform, Standard Edition Documentation (JDK 17 & 21 LTS)*.
 2. OpenJFX Community. (2024). *JavaFX 21 Documentation & API Reference*. <https://openjfx.io/>
@@ -430,7 +358,7 @@ The project successfully realized all architectural, functional, and quality obj
 
 ---
 
-## 13. Appendices
+## 10. Appendices
 
 ### Appendix A: Build & Run Commands
 ```bash
