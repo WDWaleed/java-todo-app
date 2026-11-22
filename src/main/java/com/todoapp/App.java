@@ -15,6 +15,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 
 import java.net.URL;
@@ -111,6 +114,13 @@ public class App extends Application {
         // Build main JavaFX view
         MainView mainView = new MainView(controller);
         Scene scene = new Scene(mainView, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+
+        // Global shortcuts via scene accelerators
+        KeyCombination searchShortcut = new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN);
+        scene.getAccelerators().put(searchShortcut, () -> {
+            mainView.getToolbar().getSearchField().requestFocus();
+            mainView.getToolbar().getSearchField().selectAll();
+        });
 
         URL cssResource = getClass().getResource("/com/todoapp/ui/styles.css");
         if (cssResource != null) {

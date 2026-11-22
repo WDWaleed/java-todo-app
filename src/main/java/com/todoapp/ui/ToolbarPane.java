@@ -62,6 +62,13 @@ public class ToolbarPane extends HBox {
         searchField.setPromptText("Search tasks...");
         searchField.getStyleClass().add("search-field");
         searchField.setPrefWidth(200);
+        searchField.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ESCAPE) {
+                searchField.clear();
+                controller.onSearch("");
+                e.consume();
+            }
+        });
 
         clearSearchButton = new Button("✕");
         clearSearchButton.getStyleClass().add("clear-search-button");

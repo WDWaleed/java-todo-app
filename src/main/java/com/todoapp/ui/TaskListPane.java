@@ -59,13 +59,21 @@ public class TaskListPane extends VBox {
             }
         });
 
-        // Delete key shortcut per M09.4
+        // Keyboard shortcuts on ListView for selection-dependent actions: Enter/F2 (edit), Delete (delete), Space (complete)
         listView.setOnKeyPressed(event -> {
+            Task selected = listView.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                return;
+            }
             if (event.getCode() == KeyCode.DELETE) {
-                Task selected = listView.getSelectionModel().getSelectedItem();
-                if (selected != null) {
-                    TaskCell.confirmAndDelete(controller, selected);
-                }
+                TaskCell.confirmAndDelete(controller, selected);
+                event.consume();
+            } else if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.F2) {
+                TaskCell.openEditDialog(controller, selected);
+                event.consume();
+            } else if (event.getCode() == KeyCode.SPACE) {
+                controller.onToggleComplete(selected.getId());
+                event.consume();
             }
         });
 
