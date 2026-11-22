@@ -65,16 +65,17 @@ todo-app/
     │   ├── Launcher.java    (Plain main class launching JavaFX application)
     │   ├── App.java         (JavaFX Application entry point)
     │   ├── AppConfig.java   (Command-line & system properties parser)
+    │   ├── DevSeed.java     (Developer sample data generator)
     │   ├── model/           (Task, SimpleTask, ChecklistTask, ChecklistItem, DeadlineTask,
     │   │                     Category, Priority, TaskType, TaskDraft, TaskFactory)
     │   ├── repository/      (TaskRepository, CategoryRepository,
     │   │                     InMemoryTaskRepository, InMemoryCategoryRepository)
     │   ├── service/         (TaskService, CategoryService, TaskQuery, SortOption, StatusFilter,
     │   │                     TaskChangeListener, ChangeType, ValidationException, NotFoundException)
-    │   ├── storage/         (Storage, JsonStorage, AppData, JsonMapper, AutosaveListener, StorageException)
+    │   ├── storage/         (Storage, JsonStorage, AppData, JsonMapper, AutosaveListener, DataSync, StorageException)
     │   ├── controller/      (MainController, ViewState, ViewListener)
     │   └── ui/              (MainView, ToolbarPane, CategoryPane, TaskListPane, TaskCell,
-    │                         TaskEditorDialog, CategoryDialog, StatusBar, Theme)
+    │                         TaskEditorDialog, CategoryDialog, AppMenuBar, StatusBar, Theme)
     ├── main/resources/com/todoapp/ui/styles.css
     └── test/java/com/todoapp/
 ```
@@ -218,7 +219,9 @@ classDiagram
 
     class TaskFactory {
         +static create(TaskDraft) Task
+        +static create(TaskDraft, LocalDateTime) Task
         +static apply(Task, TaskDraft)
+        +static apply(Task, TaskDraft, LocalDateTime)
     }
 
     Task <|-- SimpleTask
@@ -371,6 +374,11 @@ classDiagram
         +static taskFromJson(JsonObject) Task
     }
 
+    class DataSync {
+        +static populateRepositories(AppData, TaskRepository, CategoryRepository)
+        +static snapshot(TaskRepository, CategoryRepository) AppData
+    }
+
     class AutosaveListener {
         -Storage storage
         -TaskRepository taskRepo
@@ -449,10 +457,24 @@ classDiagram
         +showAndWait() Optional~TaskDraft~
     }
 
+    class AppMenuBar {
+        -MenuItem undoMenuItem
+        -CheckMenuItem showCompletedItem
+        +updateState(ViewState, boolean)
+        +static showAboutDialog()
+        +static showShortcutsDialog()
+    }
+
+    class CategoryDialog {
+        +showAndWait() Optional~CategoryDraft~
+    }
+
     MainView ..|> ViewListener
     MainView --> MainController
     MainView *-- TaskCell
+    MainView *-- AppMenuBar
     MainView ..> TaskEditorDialog : presents
+    MainView ..> CategoryDialog : presents
 ```
 
 ---
