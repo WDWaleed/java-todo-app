@@ -17,7 +17,6 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
@@ -144,13 +143,15 @@ public class TaskCell extends ListCell<Task> {
 
     private void openEditDialog(Task task) {
         if (task == null) return;
-        Optional<Task> currentOpt = controller.getTaskService().get(task.getId());
-        if (currentOpt.isEmpty()) {
+        Task current;
+        try {
+            current = controller.getTaskService().get(task.getId());
+        } catch (Exception e) {
             controller.setInfoMessage("Task was removed or is no longer available.");
             controller.refresh();
             return;
         }
-        TaskEditorDialog dialog = new TaskEditorDialog(controller, currentOpt.get());
+        TaskEditorDialog dialog = new TaskEditorDialog(controller, current);
         dialog.showAndWait();
     }
 
