@@ -176,14 +176,40 @@
 }
 
 .task-card:hover {
-    -fx-border-color: #bdbdbd;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.08), 6, 0, 0, 2);
+    -fx-border-color: #90caf9;
+    -fx-effect: dropshadow(three-pass-box, rgba(25, 118, 210, 0.12), 6, 0, 0, 2);
 }
 
 .task-card-pinned {
     -fx-background-color: #fffde7;
     -fx-border-color: #ffe082;
     -fx-border-width: 1px;
+}
+
+.task-card-pinned:hover {
+    -fx-border-color: #fbc02d;
+    -fx-effect: dropshadow(three-pass-box, rgba(251, 192, 45, 0.18), 6, 0, 0, 2);
+}
+
+.task-card-completed {
+    -fx-opacity: 0.60;
+    -fx-background-color: #fafafa;
+}
+
+.task-card-completed:hover {
+    -fx-opacity: 0.85;
+}
+
+.task-badge-overdue {
+    -fx-text-fill: #d32f2f;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.task-badge-due-soon {
+    -fx-text-fill: #fb8c00;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
 }
 
 .pinned-indicator {

@@ -182,12 +182,15 @@ public class TaskCell extends ListCell<Task> {
 
         // 2. Checkbox state
         completedCheckBox.setSelected(task.isCompleted());
+        completedCheckBox.setTooltip(new Tooltip(task.isCompleted() ? "Mark incomplete (Space)" : "Mark complete (Space)"));
 
-        // 3. Title and completion styling
+        // 3. Title and completion styling, plus card dimming
         titleLabel.setText(task.getTitle());
         titleLabel.getStyleClass().removeAll("task-title", "task-title-completed");
+        card.getStyleClass().remove("task-card-completed");
         if (task.isCompleted()) {
             titleLabel.getStyleClass().add("task-title-completed");
+            card.getStyleClass().add("task-card-completed");
         } else {
             titleLabel.getStyleClass().add("task-title");
         }
@@ -228,10 +231,29 @@ public class TaskCell extends ListCell<Task> {
             summaryLabel.setManaged(false);
         }
 
-        // 7. Polymorphic overdue status
-        boolean overdue = task.isOverdue(LocalDate.now());
-        overdueLabel.setVisible(overdue);
-        overdueLabel.setManaged(overdue);
+        // 7. Polymorphic overdue and due-soon status
+        LocalDate today = LocalDate.now();
+        boolean overdue = task.isOverdue(today);
+        Optional<LocalDate> dueDate = task.getDueDate();
+        boolean dueSoon = !task.isCompleted() && !overdue && dueDate.isPresent()
+                && !dueDate.get().isBefore(today)
+                && !dueDate.get().isAfter(today.plusDays(2));
+
+        overdueLabel.getStyleClass().removeAll("task-badge-overdue", "task-badge-due-soon");
+        if (overdue) {
+            overdueLabel.setText("⚠️ Overdue");
+            overdueLabel.getStyleClass().add("task-badge-overdue");
+            overdueLabel.setVisible(true);
+            overdueLabel.setManaged(true);
+        } else if (dueSoon) {
+            overdueLabel.setText("⏰ Due soon");
+            overdueLabel.getStyleClass().add("task-badge-due-soon");
+            overdueLabel.setVisible(true);
+            overdueLabel.setManaged(true);
+        } else {
+            overdueLabel.setVisible(false);
+            overdueLabel.setManaged(false);
+        }
 
         // 8. Polymorphic progress bar (displayed for checklist tasks)
         if (task.getType() == TaskType.CHECKLIST) {

@@ -52,6 +52,7 @@ public class ToolbarPane extends HBox {
         // New Task Button
         newTaskButton = new Button("＋ New Task");
         newTaskButton.getStyleClass().add("new-task-button");
+        newTaskButton.setTooltip(new Tooltip("Create a new task (Ctrl+N)"));
         newTaskButton.setOnAction(e -> {
             TaskEditorDialog dialog = new TaskEditorDialog(controller);
             dialog.showAndWait();
@@ -106,6 +107,7 @@ public class ToolbarPane extends HBox {
 
         // Sort ComboBox with clean display labels
         sortComboBox = new ComboBox<>();
+        sortComboBox.setTooltip(new Tooltip("Sort tasks by"));
         sortComboBox.getItems().addAll(SortOption.values());
         sortComboBox.setValue(SortOption.CREATED);
         sortComboBox.setCellFactory(lv -> new ListCell<>() {
@@ -125,6 +127,7 @@ public class ToolbarPane extends HBox {
 
         // Sort Direction Toggle Button
         sortDirectionButton = new ToggleButton("↓ Desc");
+        sortDirectionButton.setTooltip(new Tooltip("Toggle sort direction (Ascending / Descending)"));
         sortDirectionButton.setSelected(false);
         sortDirectionButton.setOnAction(e -> {
             if (!updatingUi) {
@@ -142,6 +145,7 @@ public class ToolbarPane extends HBox {
 
         // Status Filter ComboBox with clean display labels
         statusFilterComboBox = new ComboBox<>();
+        statusFilterComboBox.setTooltip(new Tooltip("Filter by completion status"));
         statusFilterComboBox.getItems().addAll(StatusFilter.values());
         statusFilterComboBox.setValue(StatusFilter.ALL);
         statusFilterComboBox.setCellFactory(lv -> new ListCell<>() {
@@ -166,6 +170,7 @@ public class ToolbarPane extends HBox {
 
         // Priority Filter ComboBox
         priorityFilterComboBox = new ComboBox<>();
+        priorityFilterComboBox.setTooltip(new Tooltip("Filter by priority level"));
         priorityFilterComboBox.getItems().addAll("All Priorities", "High", "Medium", "Low");
         priorityFilterComboBox.setValue("All Priorities");
         priorityFilterComboBox.setOnAction(e -> {
