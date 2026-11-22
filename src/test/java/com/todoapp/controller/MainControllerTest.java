@@ -400,4 +400,155 @@ class MainControllerTest {
         controller.onTogglePinned(UUID.randomUUID());
         assertNotNull(controller.getCurrentState().errorMessage());
     }
+
+    @Test
+    @DisplayName("onCreateCategory succeeds and sets info message")
+    void testOnCreateCategorySuccess() {
+        var createdOpt = controller.onCreateCategory("Work", "#1976D2");
+        assertTrue(createdOpt.isPresent());
+        Category created = createdOpt.get();
+        assertEquals("Work", created.getName());
+        assertEquals("#1976D2", created.getColorHex());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Category created: Work"));
+        assertNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onCreateCategory handles validation failure and sets error message")
+    void testOnCreateCategoryValidationFailure() {
+        var createdBlank = controller.onCreateCategory("", "#1976D2");
+        assertTrue(createdBlank.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+
+        var createdInvalidColor = controller.onCreateCategory("Health", "invalid-color");
+        assertTrue(createdInvalidColor.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onRenameCategory succeeds and handles failure cases")
+    void testOnRenameCategory() {
+        Category created = categoryService.create("Study", "#7B1FA2");
+
+        var renamedOpt = controller.onRenameCategory(created.getId(), "Academics");
+        assertTrue(renamedOpt.isPresent());
+        assertEquals("Academics", renamedOpt.get().getName());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Category renamed: Academics"));
+
+        // General cannot be renamed
+        var renameGeneral = controller.onRenameCategory(Category.DEFAULT_ID, "New General");
+        assertTrue(renameGeneral.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+
+        // Blank name
+        var renameBlank = controller.onRenameCategory(created.getId(), "   ");
+        assertTrue(renameBlank.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+
+        // Non-existent ID
+        var renameNotFound = controller.onRenameCategory(UUID.randomUUID(), "Valid");
+        assertTrue(renameNotFound.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onRecolorCategory updates color and handles failures")
+    void testOnRecolorCategory() {
+        Category created = categoryService.create("Fitness", "#388E3C");
+
+        var recoloredOpt = controller.onRecolorCategory(created.getId(), "#F57C00");
+        assertTrue(recoloredOpt.isPresent());
+        assertEquals("#F57C00", recoloredOpt.get().getColorHex());
+        assertTrue(controller.getCurrentState().infoMessage().contains("Category recolored: Fitness"));
+
+        // Invalid color code
+        var recolorInvalid = controller.onRecolorCategory(created.getId(), "bad");
+        assertTrue(recolorInvalid.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+
+        // Not found
+        var recolorNotFound = controller.onRecolorCategory(UUID.randomUUID(), "#388E3C");
+        assertTrue(recolorNotFound.isEmpty());
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onDeleteCategory deletes category, reassigns tasks, and falls back to All if selected")
+    void testOnDeleteCategorySuccess() {
+        Category projectCat = categoryService.create("Project", "#0097A7");
+        Task task = taskService.create(TaskDraft.ofSimple("Project Task", "", Priority.HIGH, projectCat.getId()));
+
+        // Select the category first
+        controller.onSelectCategory(projectCat.getId());
+        assertEquals(projectCat.getId(), controller.getCurrentState().query().categoryId());
+
+        // Delete the category
+        boolean deleted = controller.onDeleteCategory(projectCat.getId());
+        assertTrue(deleted);
+        assertTrue(controller.getCurrentState().infoMessage().contains("Category deleted: Project"));
+
+        // Selection must fall back to "All" (null category ID)
+        assertNull(controller.getCurrentState().query().categoryId());
+
+        // Task must be reassigned to General
+        Task updatedTask = taskService.get(task.getId());
+        assertEquals(Category.DEFAULT_ID, updatedTask.getCategoryId());
+    }
+
+    @Test
+    @DisplayName("onDeleteCategory handles default category and non-existent failures")
+    void testOnDeleteCategoryFailures() {
+        // Attempting to delete General category fails
+        boolean deleteGeneral = controller.onDeleteCategory(Category.DEFAULT_ID);
+        assertFalse(deleteGeneral);
+        assertNotNull(controller.getCurrentState().errorMessage());
+
+        // Non-existent ID fails
+        boolean deleteNotFound = controller.onDeleteCategory(UUID.randomUUID());
+        assertFalse(deleteNotFound);
+        assertNotNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("onClearFilters resets all query criteria to defaults")
+    void testOnClearFilters() {
+        Category cat = categoryService.create("Personal", "#E91E63");
+        controller.onSelectCategory(cat.getId());
+        controller.onSearch("test search");
+        controller.onStatusFilter(StatusFilter.ACTIVE);
+        controller.onPriorityFilter(Priority.HIGH);
+        controller.onSort(SortOption.TITLE, true);
+        controller.setInfoMessage("Some message");
+
+        assertNotEquals(TaskQuery.defaultQuery(), controller.getCurrentState().query());
+
+        controller.onClearFilters();
+
+        assertEquals(TaskQuery.defaultQuery(), controller.getCurrentState().query());
+        assertNull(controller.getCurrentState().infoMessage());
+        assertNull(controller.getCurrentState().errorMessage());
+    }
+
+    @Test
+    @DisplayName("Filter combinations combine category, status, priority, and search")
+    void testFilterCombinations() {
+        Category work = categoryService.create("Work", "#1976D2");
+        Category personal = categoryService.create("Personal", "#388E3C");
+
+        Task t1 = taskService.create(TaskDraft.ofSimple("Work report", "Q4 data", Priority.HIGH, work.getId()));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Work email", "Inbox check", Priority.LOW, work.getId()));
+        Task t3 = taskService.create(TaskDraft.ofSimple("Personal report", "Budget", Priority.HIGH, personal.getId()));
+        taskService.toggleComplete(t2.getId());
+
+        receivedTasks.clear();
+
+        controller.onSelectCategory(work.getId());
+        controller.onStatusFilter(StatusFilter.ACTIVE);
+        controller.onPriorityFilter(Priority.HIGH);
+        controller.onSearch("report");
+
+        List<Task> finalTasks = receivedTasks.get(receivedTasks.size() - 1);
+        assertEquals(1, finalTasks.size());
+        assertEquals(t1.getId(), finalTasks.get(0).getId());
+    }
 }

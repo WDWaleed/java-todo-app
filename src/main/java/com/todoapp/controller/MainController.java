@@ -9,6 +9,7 @@ import com.todoapp.service.ChangeType;
 import com.todoapp.service.NotFoundException;
 import com.todoapp.service.SortOption;
 import com.todoapp.service.StatusFilter;
+import com.todoapp.service.TaskQuery;
 import com.todoapp.service.TaskService;
 import com.todoapp.service.ValidationException;
 
