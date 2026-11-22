@@ -195,7 +195,7 @@ public class ToolbarPane extends HBox {
     public void updateFromQuery(TaskQuery query) {
         updatingUi = true;
         try {
-            String querySearch = query.search() != null ? query.search() : "";
+            String querySearch = query.searchText() != null ? query.searchText() : "";
             if (!searchField.getText().equals(querySearch)) {
                 searchField.setText(querySearch);
             }

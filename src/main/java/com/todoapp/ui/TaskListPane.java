@@ -102,7 +102,7 @@ public class TaskListPane extends VBox {
 
         boolean hasFilters = (query != null) && (
                 query.categoryId() != null
-                || (query.search() != null && !query.search().isBlank())
+                || (query.searchText() != null && !query.searchText().isBlank())
                 || query.status() != StatusFilter.ALL
                 || query.priority() != null
         );
