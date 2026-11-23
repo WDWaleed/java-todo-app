@@ -24,6 +24,7 @@ todo-*.json
 *.json.tmp
 *.json.corrupt-*
 .todoapp/
+docs/explanation.md
 
 # Operating system files
 .DS_Store
