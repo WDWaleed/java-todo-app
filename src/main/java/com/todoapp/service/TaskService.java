@@ -394,11 +394,7 @@ public class TaskService {
         // Search text
         String search = q.searchText() != null ? q.searchText().trim().toLowerCase(Locale.ROOT) : "";
         if (!search.isEmpty()) {
-            predicate = predicate.and(t -> {
-                String title = t.getTitle().toLowerCase(Locale.ROOT);
-                String desc = t.getDescription().toLowerCase(Locale.ROOT);
-                return title.contains(search) || desc.contains(search);
-            });
+            predicate = predicate.and(t -> t.getTitle().toLowerCase(Locale.ROOT).contains(search));
         }
 
         return predicate;

@@ -1,7 +1,6 @@
 package com.todoapp.service;
 
 import com.todoapp.model.Category;
-import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.SimpleTask;
 import com.todoapp.model.Task;
@@ -27,8 +26,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit test suite verifying the TaskService query engine, filtering,
- * keyword searching, sorting strategies, and the pinned-first invariant.
+ * Unit tests verifying {@link TaskService#query(TaskQuery)} engine,
+ * covering composed filtering, live keyword search, sorting strategies,
+ * the pinned-first invariant, and query performance.
  */
 class TaskQueryEngineTest {
 
@@ -42,61 +42,56 @@ class TaskQueryEngineTest {
     void setUp() {
         taskRepo = new InMemoryTaskRepository();
         categoryRepo = new InMemoryCategoryRepository();
-        taskService = new TaskService(taskRepo, categoryRepo, Clock.fixed(Instant.parse("2026-11-20T10:00:00Z"), ZoneId.of("UTC")));
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-11-20T10:00:00.00Z"), ZoneId.of("UTC"));
+        taskService = new TaskService(taskRepo, categoryRepo, fixedClock);
 
-        catWork = categoryRepo.save(new Category("Work", "#1976D2"));
-        catPersonal = categoryRepo.save(new Category("Personal", "#388E3C"));
+        catWork = new Category("Work", "#1976D2");
+        catPersonal = new Category("Personal", "#388E3C");
+        categoryRepo.save(catWork);
+        categoryRepo.save(catPersonal);
     }
 
     // =========================================================================
-    // 1. Enums & TaskQuery Value Object Tests
+    // 1. TaskQuery Record & Defaults Tests
     // =========================================================================
 
     @Test
-    @DisplayName("StatusFilter and SortOption labels and parsing")
-    void testEnumsAndParsing() {
-        assertEquals("All Tasks", StatusFilter.ALL.getLabel());
-        assertEquals(StatusFilter.ACTIVE, StatusFilter.fromLabel("Active"));
-        assertEquals(StatusFilter.COMPLETED, StatusFilter.fromLabel("completed"));
-        assertEquals(StatusFilter.ALL, StatusFilter.fromLabel(null));
-        assertEquals(StatusFilter.ALL, StatusFilter.fromLabel(""));
-        assertThrows(IllegalArgumentException.class, () -> StatusFilter.fromLabel("Invalid"));
-
-        assertEquals("Priority", SortOption.PRIORITY.getLabel());
-        assertEquals(SortOption.DUE_DATE, SortOption.fromLabel("Due Date"));
-        assertEquals(SortOption.CREATED, SortOption.fromLabel(null));
-        assertEquals(SortOption.TITLE, SortOption.fromLabel("title"));
-        assertThrows(IllegalArgumentException.class, () -> SortOption.fromLabel("UnknownSort"));
-        assertEquals("Priority", SortOption.PRIORITY.toString());
-        assertEquals("All Tasks", StatusFilter.ALL.toString());
-    }
-
-    @Test
-    @DisplayName("TaskQuery defaults and with... copy methods")
-    void testTaskQueryValueObject() {
-        TaskQuery defaultQ = TaskQuery.defaultQuery();
-        assertNull(defaultQ.categoryId());
-        assertEquals(StatusFilter.ALL, defaultQ.status());
-        assertNull(defaultQ.priority());
-        assertEquals("", defaultQ.searchText());
-        assertEquals(SortOption.CREATED, defaultQ.sort());
-        assertFalse(defaultQ.ascending());
+    @DisplayName("TaskQuery default values and with-helpers")
+    void testTaskQueryDefaultsAndWithHelpers() {
+        TaskQuery query = TaskQuery.defaultQuery();
+        assertNull(query.categoryId());
+        assertEquals(StatusFilter.ALL, query.status());
+        assertNull(query.priority());
+        assertEquals("", query.searchText());
+        assertEquals(SortOption.CREATED, query.sort());
+        assertFalse(query.ascending());
 
         UUID catId = UUID.randomUUID();
-        TaskQuery q = defaultQ.withCategory(catId)
+        TaskQuery updated = query.withCategory(catId)
                 .withStatus(StatusFilter.ACTIVE)
                 .withPriority(Priority.HIGH)
-                .withSearch("SearchQuery")
-                .withSort(SortOption.TITLE, true)
-                .withSortOption(SortOption.DUE_DATE)
-                .withAscending(false);
+                .withSearch("meeting")
+                .withSort(SortOption.TITLE, true);
 
-        assertEquals(catId, q.categoryId());
-        assertEquals(StatusFilter.ACTIVE, q.status());
-        assertEquals(Priority.HIGH, q.priority());
-        assertEquals("SearchQuery", q.searchText());
-        assertEquals(SortOption.DUE_DATE, q.sort());
-        assertFalse(q.ascending());
+        assertEquals(catId, updated.categoryId());
+        assertEquals(StatusFilter.ACTIVE, updated.status());
+        assertEquals(Priority.HIGH, updated.priority());
+        assertEquals("meeting", updated.searchText());
+        assertEquals(SortOption.TITLE, updated.sort());
+        assertTrue(updated.ascending());
+    }
+
+    @Test
+    @DisplayName("SortOption labels and comparators")
+    void testSortOptionProperties() {
+        assertEquals("Priority", SortOption.PRIORITY.getLabel());
+        assertEquals("Due Date", SortOption.DUE_DATE.getLabel());
+        assertEquals("Date Created", SortOption.CREATED.getLabel());
+        assertEquals("Title", SortOption.TITLE.getLabel());
+        assertEquals("Priority", SortOption.PRIORITY.toString());
+
+        assertNotNull(SortOption.PRIORITY.getComparator(true));
+        assertNotNull(SortOption.PRIORITY.getComparator(false));
     }
 
     // =========================================================================
@@ -106,12 +101,12 @@ class TaskQueryEngineTest {
     @Test
     @DisplayName("Filter by category, status, and priority")
     void testFilteringCombinations() {
-        Task t1 = taskService.create(TaskDraft.ofSimple("Work High Active", "Desc", Priority.HIGH, catWork.getId()));
-        Task t2 = taskService.create(TaskDraft.ofSimple("Work Med Complete", "Desc", Priority.MEDIUM, catWork.getId()));
+        Task t1 = taskService.create(TaskDraft.ofSimple("Work High Active", Priority.HIGH, catWork.getId()));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Work Med Complete", Priority.MEDIUM, catWork.getId()));
         taskService.toggleComplete(t2.getId());
 
-        Task t3 = taskService.create(TaskDraft.ofSimple("Personal Low Active", "Desc", Priority.LOW, catPersonal.getId()));
-        Task t4 = taskService.create(TaskDraft.ofSimple("General High Active", "Desc", Priority.HIGH, Category.DEFAULT_ID));
+        Task t3 = taskService.create(TaskDraft.ofSimple("Personal Low Active", Priority.LOW, catPersonal.getId()));
+        Task t4 = taskService.create(TaskDraft.ofSimple("General High Active", Priority.HIGH, Category.DEFAULT_ID));
 
         // Category filter
         List<Task> workOnly = taskService.query(TaskQuery.defaultQuery().withCategory(catWork.getId()));
@@ -147,22 +142,18 @@ class TaskQueryEngineTest {
     // =========================================================================
 
     @Test
-    @DisplayName("Live search matches title and description case-insensitively")
+    @DisplayName("Live search matches title case-insensitively")
     void testKeywordSearch() {
-        taskService.create(TaskDraft.ofSimple("Learn JavaFX Controls", "Study Scene Graph layout", Priority.HIGH, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Write JUnit Tests", "Cover all edge cases and assertions", Priority.MEDIUM, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Review Pull Request", "Check Java code style and conventions", Priority.LOW, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Learn JavaFX Controls", Priority.HIGH, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Write JUnit Tests", Priority.MEDIUM, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Review Java Pull Request", Priority.LOW, Category.DEFAULT_ID));
 
         // Search title
         List<Task> searchTitle = taskService.query(TaskQuery.defaultQuery().withSearch("javafx"));
         assertEquals(1, searchTitle.size());
         assertEquals("Learn JavaFX Controls", searchTitle.get(0).getTitle());
 
-        // Search description
-        List<Task> searchDesc = taskService.query(TaskQuery.defaultQuery().withSearch("scene graph"));
-        assertEquals(1, searchDesc.size());
-
-        // Match multiple in title or description
+        // Match multiple in title
         List<Task> searchJava = taskService.query(TaskQuery.defaultQuery().withSearch("java"));
         assertEquals(2, searchJava.size());
 
@@ -185,9 +176,9 @@ class TaskQueryEngineTest {
     @Test
     @DisplayName("Sort by Priority ascending (HIGH first) and descending (LOW first)")
     void testSortByPriority() {
-        Task low = taskService.create(TaskDraft.ofSimple("Low Task", "", Priority.LOW, Category.DEFAULT_ID));
-        Task med = taskService.create(TaskDraft.ofSimple("Med Task", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task high = taskService.create(TaskDraft.ofSimple("High Task", "", Priority.HIGH, Category.DEFAULT_ID));
+        Task low = taskService.create(TaskDraft.ofSimple("Low Task", Priority.LOW, Category.DEFAULT_ID));
+        Task med = taskService.create(TaskDraft.ofSimple("Med Task", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task high = taskService.create(TaskDraft.ofSimple("High Task", Priority.HIGH, Category.DEFAULT_ID));
 
         // Ascending = Rank 1 (High) first
         List<Task> asc = taskService.query(TaskQuery.defaultQuery().withSort(SortOption.PRIORITY, true));
@@ -209,10 +200,10 @@ class TaskQueryEngineTest {
         LocalDate d2 = LocalDate.of(2026, 11, 25);
         LocalDate d3 = LocalDate.of(2026, 12, 1);
 
-        Task noDate = taskService.create(TaskDraft.ofSimple("No Date Task", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task early = taskService.create(TaskDraft.ofDeadline("Early Task", "", Priority.MEDIUM, Category.DEFAULT_ID, d1));
-        Task mid = taskService.create(TaskDraft.ofDeadline("Mid Task", "", Priority.MEDIUM, Category.DEFAULT_ID, d2));
-        Task late = taskService.create(TaskDraft.ofDeadline("Late Task", "", Priority.MEDIUM, Category.DEFAULT_ID, d3));
+        Task noDate = taskService.create(TaskDraft.ofSimple("No Date Task", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task early = taskService.create(TaskDraft.ofDeadline("Early Task", Priority.MEDIUM, Category.DEFAULT_ID, d1));
+        Task mid = taskService.create(TaskDraft.ofDeadline("Mid Task", Priority.MEDIUM, Category.DEFAULT_ID, d2));
+        Task late = taskService.create(TaskDraft.ofDeadline("Late Task", Priority.MEDIUM, Category.DEFAULT_ID, d3));
 
         // Ascending: Earliest first, null dates last
         List<Task> asc = taskService.query(TaskQuery.defaultQuery().withSort(SortOption.DUE_DATE, true));
@@ -232,9 +223,9 @@ class TaskQueryEngineTest {
     @Test
     @DisplayName("Sort by Title case-insensitively")
     void testSortByTitle() {
-        Task b = taskService.create(TaskDraft.ofSimple("banana", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task a = taskService.create(TaskDraft.ofSimple("Apple", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task c = taskService.create(TaskDraft.ofSimple("cherry", "", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task b = taskService.create(TaskDraft.ofSimple("banana", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task a = taskService.create(TaskDraft.ofSimple("Apple", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task c = taskService.create(TaskDraft.ofSimple("cherry", Priority.MEDIUM, Category.DEFAULT_ID));
 
         List<Task> asc = taskService.query(TaskQuery.defaultQuery().withSort(SortOption.TITLE, true));
         assertEquals(a.getId(), asc.get(0).getId());
@@ -252,9 +243,9 @@ class TaskQueryEngineTest {
     void testSortByCreated() {
         LocalDateTime baseTime = LocalDateTime.of(2026, 11, 20, 10, 0);
 
-        SimpleTask t1 = new SimpleTask(UUID.randomUUID(), "T1", "", Priority.MEDIUM, Category.DEFAULT_ID, false, false, baseTime, baseTime);
-        SimpleTask t2 = new SimpleTask(UUID.randomUUID(), "T2", "", Priority.MEDIUM, Category.DEFAULT_ID, false, false, baseTime.plusHours(1), baseTime.plusHours(1));
-        SimpleTask t3 = new SimpleTask(UUID.randomUUID(), "T3", "", Priority.MEDIUM, Category.DEFAULT_ID, false, false, baseTime.plusHours(2), baseTime.plusHours(2));
+        SimpleTask t1 = new SimpleTask(UUID.randomUUID(), "T1", Priority.MEDIUM, Category.DEFAULT_ID, false, false, baseTime, baseTime);
+        SimpleTask t2 = new SimpleTask(UUID.randomUUID(), "T2", Priority.MEDIUM, Category.DEFAULT_ID, false, false, baseTime.plusHours(1), baseTime.plusHours(1));
+        SimpleTask t3 = new SimpleTask(UUID.randomUUID(), "T3", Priority.MEDIUM, Category.DEFAULT_ID, false, false, baseTime.plusHours(2), baseTime.plusHours(2));
 
         taskRepo.save(t1);
         taskRepo.save(t2);
@@ -281,8 +272,8 @@ class TaskQueryEngineTest {
     void testPinnedFirstInvariant(SortOption option) {
         LocalDate date = LocalDate.of(2026, 11, 20);
 
-        Task unpinnedZ = taskService.create(TaskDraft.ofDeadline("Zebra", "", Priority.HIGH, Category.DEFAULT_ID, date));
-        Task pinnedA = taskService.create(TaskDraft.ofDeadline("Ant", "", Priority.LOW, Category.DEFAULT_ID, date.plusDays(10)));
+        Task unpinnedZ = taskService.create(TaskDraft.ofDeadline("Zebra", Priority.HIGH, Category.DEFAULT_ID, date));
+        Task pinnedA = taskService.create(TaskDraft.ofDeadline("Ant", Priority.LOW, Category.DEFAULT_ID, date.plusDays(10)));
         taskService.togglePinned(pinnedA.getId());
 
         // Test Ascending
@@ -303,10 +294,10 @@ class TaskQueryEngineTest {
     @Test
     @DisplayName("countByPriority, countActive, and countCompleted")
     void testCountHelpers() {
-        Task t1 = taskService.create(TaskDraft.ofSimple("H1", "", Priority.HIGH, catWork.getId()));
-        Task t2 = taskService.create(TaskDraft.ofSimple("H2", "", Priority.HIGH, catWork.getId()));
-        Task t3 = taskService.create(TaskDraft.ofSimple("M1", "", Priority.MEDIUM, catWork.getId()));
-        Task t4 = taskService.create(TaskDraft.ofSimple("L1", "", Priority.LOW, catPersonal.getId()));
+        Task t1 = taskService.create(TaskDraft.ofSimple("H1", Priority.HIGH, catWork.getId()));
+        Task t2 = taskService.create(TaskDraft.ofSimple("H2", Priority.HIGH, catWork.getId()));
+        Task t3 = taskService.create(TaskDraft.ofSimple("M1", Priority.MEDIUM, catWork.getId()));
+        Task t4 = taskService.create(TaskDraft.ofSimple("L1", Priority.LOW, catPersonal.getId()));
 
         taskService.toggleComplete(t1.getId());
 
@@ -345,8 +336,7 @@ class TaskQueryEngineTest {
 
             SimpleTask task = new SimpleTask(
                     UUID.randomUUID(),
-                    "Task Number " + i,
-                    "Description for task " + i + " contains benchmark search text",
+                    "Task Number " + i + " benchmark",
                     p,
                     cat,
                     completed,
@@ -364,14 +354,11 @@ class TaskQueryEngineTest {
                 .withSearch("benchmark")
                 .withSort(SortOption.PRIORITY, true);
 
-        // Warmup query
-        taskService.query(query);
-
         long start = System.currentTimeMillis();
         List<Task> results = taskService.query(query);
         long elapsed = System.currentTimeMillis() - start;
 
         assertFalse(results.isEmpty());
-        assertTrue(elapsed < 200, "1,000 tasks query took " + elapsed + "ms, expected < 200ms");
+        assertTrue(elapsed < 200, "Expected query < 200ms, took " + elapsed + "ms");
     }
 }

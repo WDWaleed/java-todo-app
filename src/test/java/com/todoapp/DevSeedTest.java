@@ -1,7 +1,6 @@
 package com.todoapp;
 
 import com.todoapp.model.Category;
-import com.todoapp.model.ChecklistTask;
 import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.SimpleTask;
@@ -29,14 +28,13 @@ class DevSeedTest {
         boolean seeded = DevSeed.seedIfEmpty(taskRepo, categoryRepo);
         assertTrue(seeded, "Expected seeding to succeed when repository is empty");
 
-        assertEquals(12, taskRepo.count(), "Expected exactly 12 sample tasks");
+        assertEquals(8, taskRepo.count(), "Expected exactly 8 sample tasks");
         assertTrue(categoryRepo.count() >= 4, "Expected at least 4 categories (General, Work, Study, Personal)");
 
         List<Task> tasks = taskRepo.findAll();
 
         // Check types
         assertTrue(tasks.stream().anyMatch(t -> t instanceof SimpleTask), "Expected SimpleTask in seed");
-        assertTrue(tasks.stream().anyMatch(t -> t instanceof ChecklistTask), "Expected ChecklistTask in seed");
         assertTrue(tasks.stream().anyMatch(t -> t instanceof DeadlineTask), "Expected DeadlineTask in seed");
 
         // Check priorities
@@ -55,10 +53,10 @@ class DevSeedTest {
         InMemoryTaskRepository taskRepo = new InMemoryTaskRepository();
         InMemoryCategoryRepository categoryRepo = new InMemoryCategoryRepository();
 
-        taskRepo.save(new SimpleTask("Pre-existing Task", "", Priority.LOW, Category.DEFAULT_ID));
+        taskRepo.save(new SimpleTask("Pre-existing Task", Priority.LOW, Category.DEFAULT_ID));
 
         boolean seeded = DevSeed.seedIfEmpty(taskRepo, categoryRepo);
-        assertFalse(seeded, "Expected seeding to be skipped when tasks already exist");
+        assertFalse(seeded, "Expected seeding to skip when tasks already exist");
         assertEquals(1, taskRepo.count());
     }
 }

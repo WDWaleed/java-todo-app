@@ -56,7 +56,7 @@ public class ToolbarPane extends HBox {
         newTaskButton.setTooltip(new Tooltip("Create a new task (Ctrl+N)"));
         newTaskButton.setOnAction(e -> {
             TaskEditorDialog dialog = new TaskEditorDialog(controller);
-            dialog.showAndWait();
+            dialog.showAndWait().ifPresent(controller::onCreateTask);
         });
 
         // Search Field with debounce ~200 ms and Clear (✕) button

@@ -1,5 +1,5 @@
 /**
- * Domain model layer representing tasks, categories, checklist items, priorities,
+ * Domain model layer representing tasks, categories, priorities,
  * and domain creation factories.
  */
 package com.todoapp.model;

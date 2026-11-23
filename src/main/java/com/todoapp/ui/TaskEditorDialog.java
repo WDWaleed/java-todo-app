@@ -7,8 +7,6 @@ import com.todoapp.model.Task;
 import com.todoapp.model.TaskDraft;
 import com.todoapp.model.TaskType;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -20,11 +18,7 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -33,15 +27,14 @@ import javafx.scene.layout.VBox;
 
 import java.net.URL;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Modal dialog for creating and editing tasks.
- * Supports dynamic switching between Simple, Checklist, and Deadline sections,
+ * Supports switching between Simple and Deadline sections,
+ * automatically closes upon successful task creation or update,
  * and maintains dialog visibility upon validation failure.
  */
 public class TaskEditorDialog extends Dialog<TaskDraft> {
@@ -52,23 +45,16 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
 
     private ComboBox<TaskType> typeComboBox;
     private TextField titleField;
-    private TextArea descriptionArea;
     private ComboBox<Priority> priorityComboBox;
     private ComboBox<Category> categoryComboBox;
 
     // Type-specific controls
     private StackPane typeSpecificStack;
     private VBox simplePane;
-    private VBox checklistPane;
     private VBox deadlinePane;
-
-    private ObservableList<String> checklistItemsList;
-    private ListView<String> checklistListView;
-    private TextField newChecklistItemField;
     private DatePicker dueDatePicker;
 
     private Label errorLabel;
-    private TaskDraft committedDraft;
 
     /**
      * Constructs a TaskEditorDialog in CREATE mode.
@@ -130,28 +116,11 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
         titleField = new TextField();
         titleField.setPromptText("Enter title (1–100 characters)...");
         titleField.setPrefWidth(350);
-        // Prevent Enter in title field from closing the dialog
-        titleField.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == KeyCode.ENTER) {
-                e.consume();
-            }
-        });
         if (existingTask != null) {
             titleField.setText(existingTask.getTitle());
         }
         grid.add(new Label("Title: *"), 0, row);
         grid.add(titleField, 1, row++);
-
-        // Description Area
-        descriptionArea = new TextArea();
-        descriptionArea.setPromptText("Add description (optional)...");
-        descriptionArea.setPrefRowCount(3);
-        descriptionArea.setWrapText(true);
-        if (existingTask != null) {
-            descriptionArea.setText(existingTask.getDescription());
-        }
-        grid.add(new Label("Description:"), 0, row);
-        grid.add(descriptionArea, 1, row++);
 
         // Priority Selector
         priorityComboBox = new ComboBox<>();
@@ -218,7 +187,23 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
         typeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> switchTypeSection(newVal));
         switchTypeSection(typeComboBox.getValue());
 
-        setResultConverter(dialogButton -> dialogButton == confirmButtonType ? committedDraft : null);
+        setResultConverter(dialogButton -> {
+            if (dialogButton != null && dialogButton.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                return buildDraft();
+            }
+            return null;
+        });
+    }
+
+    private TaskDraft buildDraft() {
+        String title = titleField.getText();
+        Priority priority = priorityComboBox.getValue();
+        Category category = categoryComboBox.getValue();
+        UUID categoryId = category != null ? category.getId() : Category.DEFAULT_ID;
+        TaskType type = typeComboBox.getValue();
+        LocalDate dueDate = (type == TaskType.DEADLINE) ? dueDatePicker.getValue() : null;
+
+        return new TaskDraft(type, title, priority, categoryId, dueDate);
     }
 
     private void buildTypeSpecificSections(Task existingTask) {
@@ -226,37 +211,11 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
 
         // 1. Simple task pane (no extra fields)
         simplePane = new VBox();
-        Label simpleLabel = new Label("Standard text task without deadline or checklist.");
+        Label simpleLabel = new Label("Standard task without calendar deadline.");
         simpleLabel.setStyle("-fx-text-fill: #757575; -fx-font-style: italic;");
         simplePane.getChildren().add(simpleLabel);
 
-        // 2. Checklist task pane
-        checklistPane = new VBox(Theme.SPACING_SMALL);
-        checklistItemsList = FXCollections.observableArrayList();
-        checklistListView = new ListView<>(checklistItemsList);
-        checklistListView.setPrefHeight(120);
-
-        HBox addBox = new HBox(Theme.SPACING_SMALL);
-        newChecklistItemField = new TextField();
-        newChecklistItemField.setPromptText("Add new checklist item...");
-        HBox.setHgrow(newChecklistItemField, javafx.scene.layout.Priority.ALWAYS);
-
-        Button addItemBtn = new Button("Add");
-        addItemBtn.setOnAction(e -> addChecklistItem());
-        newChecklistItemField.setOnAction(e -> addChecklistItem());
-
-        Button removeItemBtn = new Button("Remove");
-        removeItemBtn.setOnAction(e -> {
-            String selected = checklistListView.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                checklistItemsList.remove(selected);
-            }
-        });
-
-        addBox.getChildren().addAll(newChecklistItemField, addItemBtn, removeItemBtn);
-        checklistPane.getChildren().addAll(checklistListView, addBox);
-
-        // 3. Deadline task pane
+        // 2. Deadline task pane
         deadlinePane = new VBox(Theme.SPACING_SMALL);
         dueDatePicker = new DatePicker(LocalDate.now());
         dueDatePicker.setPromptText("Select due date");
@@ -265,30 +224,14 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
         // Populate existing type-specific values if in edit mode
         if (existingTask != null) {
             existingTask.getDueDate().ifPresent(dueDatePicker::setValue);
-            if (existingTask instanceof com.todoapp.model.ChecklistTask checklistTask) {
-                for (com.todoapp.model.ChecklistItem item : checklistTask.getItems()) {
-                    checklistItemsList.add(item.getText());
-                }
-            }
         }
 
-        typeSpecificStack.getChildren().addAll(simplePane, checklistPane, deadlinePane);
-    }
-
-    private void addChecklistItem() {
-        String text = newChecklistItemField.getText();
-        if (text != null && !text.trim().isEmpty()) {
-            checklistItemsList.add(text.trim());
-            newChecklistItemField.clear();
-        }
+        typeSpecificStack.getChildren().addAll(simplePane, deadlinePane);
     }
 
     private void switchTypeSection(TaskType type) {
         simplePane.setVisible(type == TaskType.SIMPLE);
         simplePane.setManaged(type == TaskType.SIMPLE);
-
-        checklistPane.setVisible(type == TaskType.CHECKLIST);
-        checklistPane.setManaged(type == TaskType.CHECKLIST);
 
         deadlinePane.setVisible(type == TaskType.DEADLINE);
         deadlinePane.setManaged(type == TaskType.DEADLINE);
@@ -296,47 +239,24 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
 
     private void configureValidationFilter() {
         Button okButton = (Button) getDialogPane().lookupButton(
-                getDialogPane().getButtonTypes().get(0)
+                getDialogPane().getButtonTypes().stream()
+                        .filter(b -> b.getButtonData() == ButtonBar.ButtonData.OK_DONE)
+                        .findFirst()
+                        .orElse(ButtonType.OK)
         );
 
+        // Allow Enter in the title field to trigger creation and close
+        titleField.setOnAction(e -> okButton.fire());
+
         okButton.addEventFilter(ActionEvent.ACTION, event -> {
-            String title = titleField.getText();
-            String description = descriptionArea.getText();
-            Priority priority = priorityComboBox.getValue();
-            Category category = categoryComboBox.getValue();
-            UUID categoryId = category != null ? category.getId() : Category.DEFAULT_ID;
-            TaskType type = typeComboBox.getValue();
-
-            LocalDate dueDate = (type == TaskType.DEADLINE) ? dueDatePicker.getValue() : null;
-            List<String> items = (type == TaskType.CHECKLIST) ? new ArrayList<>(checklistItemsList) : null;
-
-            TaskDraft draft;
+            TaskDraft draft = buildDraft();
             try {
-                draft = new TaskDraft(type, title, description, priority, categoryId, dueDate, items);
                 draft.validate();
+                clearError();
             } catch (IllegalArgumentException e) {
                 showError(e.getMessage());
                 event.consume();
-                return;
             }
-
-            if (!editMode) {
-                Optional<Task> created = controller.onCreateTask(draft);
-                if (created.isEmpty()) {
-                    showError(controller.getCurrentState().errorMessage());
-                    event.consume();
-                    return;
-                }
-            } else {
-                Optional<Task> updated = controller.onUpdateTask(existingTaskId, draft);
-                if (updated.isEmpty()) {
-                    showError(controller.getCurrentState().errorMessage());
-                    event.consume();
-                    return;
-                }
-            }
-
-            committedDraft = draft;
         });
     }
 
@@ -344,6 +264,12 @@ public class TaskEditorDialog extends Dialog<TaskDraft> {
         errorLabel.setText(message != null ? message : "Validation failed. Please correct inputs.");
         errorLabel.setVisible(true);
         errorLabel.setManaged(true);
+    }
+
+    private void clearError() {
+        errorLabel.setText(null);
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
     }
 
     private void applyStyles() {

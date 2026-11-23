@@ -38,8 +38,8 @@ class RepositoryTest {
         assertEquals(0, taskRepo.count());
         assertTrue(taskRepo.findAll().isEmpty());
 
-        Task task1 = new SimpleTask("Task 1", "Desc 1", Priority.HIGH, Category.DEFAULT_ID);
-        Task task2 = new SimpleTask("Task 2", "Desc 2", Priority.LOW, Category.DEFAULT_ID);
+        Task task1 = new SimpleTask("Task 1", Priority.HIGH, Category.DEFAULT_ID);
+        Task task2 = new SimpleTask("Task 2", Priority.LOW, Category.DEFAULT_ID);
 
         taskRepo.save(task1);
         taskRepo.save(task2);

@@ -20,21 +20,19 @@ public class DeadlineTask extends Task {
     /**
      * Constructs a DeadlineTask with full attribute set.
      *
-     * @param id          task UUID
-     * @param title       task title
-     * @param description task description
-     * @param priority    task priority
-     * @param categoryId  category UUID
-     * @param completed   completion flag
-     * @param pinned      pinned flag
-     * @param createdAt   creation timestamp
-     * @param updatedAt   modification timestamp
-     * @param dueDate     non-null deadline date
+     * @param id         task UUID
+     * @param title      task title
+     * @param priority   task priority
+     * @param categoryId category UUID
+     * @param completed  completion flag
+     * @param pinned     pinned flag
+     * @param createdAt  creation timestamp
+     * @param updatedAt  modification timestamp
+     * @param dueDate    non-null deadline date
      * @throws IllegalArgumentException if dueDate is null
      */
     public DeadlineTask(UUID id,
                         String title,
-                        String description,
                         Priority priority,
                         UUID categoryId,
                         boolean completed,
@@ -42,25 +40,23 @@ public class DeadlineTask extends Task {
                         LocalDateTime createdAt,
                         LocalDateTime updatedAt,
                         LocalDate dueDate) {
-        super(id, title, description, priority, categoryId, completed, pinned, createdAt, updatedAt);
+        super(id, title, priority, categoryId, completed, pinned, createdAt, updatedAt);
         setDueDateInternal(dueDate);
     }
 
     /**
      * Convenience constructor creating a new deadline task.
      *
-     * @param title       task title
-     * @param description task description
-     * @param priority    task priority
-     * @param categoryId  category UUID
-     * @param dueDate     non-null deadline date
+     * @param title      task title
+     * @param priority   task priority
+     * @param categoryId category UUID
+     * @param dueDate    non-null deadline date
      */
     public DeadlineTask(String title,
-                        String description,
                         Priority priority,
                         UUID categoryId,
                         LocalDate dueDate) {
-        super(title, description, priority, categoryId);
+        super(title, priority, categoryId);
         setDueDateInternal(dueDate);
     }
 
@@ -123,7 +119,6 @@ public class DeadlineTask extends Task {
         return new DeadlineTask(
                 getId(),
                 getTitle(),
-                getDescription(),
                 getPriority(),
                 getCategoryId(),
                 isCompleted(),

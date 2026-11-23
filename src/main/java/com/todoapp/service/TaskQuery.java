@@ -11,7 +11,7 @@ import java.util.UUID;
  * @param categoryId optional category filter (null matches all categories)
  * @param status     completion status filter (ALL, ACTIVE, COMPLETED)
  * @param priority   optional priority filter (null matches any priority)
- * @param searchText keyword search query (matched case-insensitively in title and description)
+ * @param searchText keyword search query (matched case-insensitively in title)
  * @param sort       sorting strategy
  * @param ascending  sort direction flag (true = ascending, false = descending)
  */

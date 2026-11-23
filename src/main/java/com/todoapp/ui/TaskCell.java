@@ -45,7 +45,6 @@ public class TaskCell extends ListCell<Task> {
     private final Label categoryChip;
     private final Label summaryLabel;
     private final Label overdueLabel;
-    private final ProgressBar progressBar;
 
     /**
      * Constructs a TaskCell with the given controller and default category lookup.
@@ -129,13 +128,7 @@ public class TaskCell extends ListCell<Task> {
         overdueLabel.setVisible(false);
         overdueLabel.setManaged(false);
 
-        progressBar = new ProgressBar(0.0);
-        progressBar.setPrefWidth(120);
-        progressBar.setMaxHeight(10);
-        progressBar.setVisible(false);
-        progressBar.setManaged(false);
-
-        detailsRow.getChildren().addAll(summaryLabel, overdueLabel, progressBar);
+        detailsRow.getChildren().addAll(summaryLabel, overdueLabel);
 
         card.getChildren().addAll(header, detailsRow);
 
@@ -164,7 +157,7 @@ public class TaskCell extends ListCell<Task> {
             return;
         }
         TaskEditorDialog dialog = new TaskEditorDialog(controller, current);
-        dialog.showAndWait();
+        dialog.showAndWait().ifPresent(draft -> controller.onUpdateTask(current.getId(), draft));
     }
 
     @Override
@@ -255,15 +248,6 @@ public class TaskCell extends ListCell<Task> {
             overdueLabel.setManaged(false);
         }
 
-        // 8. Polymorphic progress bar (displayed for checklist tasks)
-        if (task.getType() == TaskType.CHECKLIST) {
-            progressBar.setProgress(task.getProgress());
-            progressBar.setVisible(true);
-            progressBar.setManaged(true);
-        } else {
-            progressBar.setVisible(false);
-            progressBar.setManaged(false);
-        }
 
         // Attach dynamic context menu
         setContextMenu(createContextMenu(task));

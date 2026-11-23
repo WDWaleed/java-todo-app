@@ -26,11 +26,11 @@ class DataSyncTest {
         InMemoryCategoryRepository categoryRepo = new InMemoryCategoryRepository();
 
         // Populate repos initially with dummy entries
-        taskRepo.save(new SimpleTask("Old Task", "Old", Priority.LOW, Category.DEFAULT_ID));
+        taskRepo.save(new SimpleTask("Old Task", Priority.LOW, Category.DEFAULT_ID));
         categoryRepo.save(new Category(UUID.randomUUID(), "Old Category", "#000000"));
 
         Category work = new Category(UUID.randomUUID(), "Work", "#1976D2");
-        SimpleTask newTask = new SimpleTask("New Task", "New", Priority.HIGH, work.getId());
+        SimpleTask newTask = new SimpleTask("New Task", Priority.HIGH, work.getId());
 
         AppData data = new AppData(List.of(Category.createDefault(), work), List.of(newTask));
 
@@ -52,7 +52,7 @@ class DataSyncTest {
         Category study = new Category("Study", "#388E3C");
         categoryRepo.save(study);
 
-        SimpleTask t1 = new SimpleTask("Task 1", "Desc 1", Priority.MEDIUM, study.getId());
+        SimpleTask t1 = new SimpleTask("Task 1", Priority.MEDIUM, study.getId());
         taskRepo.save(t1);
 
         AppData snapshot = DataSync.snapshot(taskRepo, categoryRepo);
@@ -73,7 +73,7 @@ class DataSyncTest {
     void testLoadIntoNullIsNoOp() {
         InMemoryTaskRepository taskRepo = new InMemoryTaskRepository();
         InMemoryCategoryRepository categoryRepo = new InMemoryCategoryRepository();
-        taskRepo.save(new SimpleTask("Retained", "", Priority.LOW, Category.DEFAULT_ID));
+        taskRepo.save(new SimpleTask("Retained", Priority.LOW, Category.DEFAULT_ID));
 
         DataSync.loadInto(taskRepo, categoryRepo, null);
 

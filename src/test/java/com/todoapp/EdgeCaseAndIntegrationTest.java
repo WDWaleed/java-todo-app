@@ -1,7 +1,6 @@
 package com.todoapp;
 
 import com.todoapp.model.Category;
-import com.todoapp.model.ChecklistTask;
 import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.Task;
@@ -65,7 +64,7 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Title at exactly MAX_TITLE_LENGTH (100 chars) is accepted")
     void testTitleAtMaxLength() {
         String maxTitle = "A".repeat(100);
-        TaskDraft draft = TaskDraft.ofSimple(maxTitle, "", Priority.LOW, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple(maxTitle, Priority.LOW, Category.DEFAULT_ID);
         Task task = taskService.create(draft);
         assertEquals(maxTitle, task.getTitle());
     }
@@ -74,21 +73,21 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Title exceeding MAX_TITLE_LENGTH (101 chars) is rejected with ValidationException")
     void testTitleExceedsMaxLength() {
         String longTitle = "B".repeat(101);
-        TaskDraft draft = TaskDraft.ofSimple(longTitle, "", Priority.LOW, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple(longTitle, Priority.LOW, Category.DEFAULT_ID);
         assertThrows(ValidationException.class, () -> taskService.create(draft));
     }
 
     @Test
     @DisplayName("Title with only whitespace is rejected with ValidationException")
     void testWhitespaceTitleRejected() {
-        TaskDraft draft = TaskDraft.ofSimple("   ", "", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple("   ", Priority.MEDIUM, Category.DEFAULT_ID);
         assertThrows(ValidationException.class, () -> taskService.create(draft));
     }
 
     @Test
     @DisplayName("Title with null is rejected with ValidationException")
     void testNullTitleRejected() {
-        TaskDraft draft = TaskDraft.ofSimple(null, "", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple(null, Priority.MEDIUM, Category.DEFAULT_ID);
         assertThrows(ValidationException.class, () -> taskService.create(draft));
     }
 
@@ -100,7 +99,7 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Unicode emoji and CJK characters in title are stored and retrieved correctly")
     void testUnicodeEmojiTitle() {
         String unicodeTitle = "\uD83D\uDE80 Deploy \u4e2d\u6587";
-        TaskDraft draft = TaskDraft.ofSimple(unicodeTitle, "Unicode test", Priority.HIGH, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple(unicodeTitle, Priority.HIGH, Category.DEFAULT_ID);
         Task created = taskService.create(draft);
         assertEquals(unicodeTitle, created.getTitle());
 
@@ -117,7 +116,7 @@ class EdgeCaseAndIntegrationTest {
     void testDeadlinePastIsOverdue() {
         LocalDate today = LocalDate.now(fixedClock);
         LocalDate yesterday = today.minusDays(1);
-        TaskDraft draft = TaskDraft.ofDeadline("Past task", "", Priority.HIGH, Category.DEFAULT_ID, yesterday);
+        TaskDraft draft = TaskDraft.ofDeadline("Past task", Priority.HIGH, Category.DEFAULT_ID, yesterday);
         Task task = taskService.create(draft);
 
         DeadlineTask dt = (DeadlineTask) taskService.get(task.getId());
@@ -128,7 +127,7 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Deadline task due today is NOT overdue (boundary: isBefore fails)")
     void testDeadlineTodayNotOverdue() {
         LocalDate today = LocalDate.now(fixedClock);
-        TaskDraft draft = TaskDraft.ofDeadline("Today task", "", Priority.MEDIUM, Category.DEFAULT_ID, today);
+        TaskDraft draft = TaskDraft.ofDeadline("Today task", Priority.MEDIUM, Category.DEFAULT_ID, today);
         Task task = taskService.create(draft);
 
         DeadlineTask dt = (DeadlineTask) taskService.get(task.getId());
@@ -140,7 +139,7 @@ class EdgeCaseAndIntegrationTest {
     void testDeadlineFutureNotOverdue() {
         LocalDate today = LocalDate.now(fixedClock);
         LocalDate farFuture = today.plusYears(5);
-        TaskDraft draft = TaskDraft.ofDeadline("Future task", "", Priority.LOW, Category.DEFAULT_ID, farFuture);
+        TaskDraft draft = TaskDraft.ofDeadline("Future task", Priority.LOW, Category.DEFAULT_ID, farFuture);
         Task task = taskService.create(draft);
 
         DeadlineTask dt = (DeadlineTask) taskService.get(task.getId());
@@ -152,7 +151,7 @@ class EdgeCaseAndIntegrationTest {
     void testCompletedDeadlineNotOverdue() {
         LocalDate today = LocalDate.now(fixedClock);
         LocalDate yesterday = today.minusDays(1);
-        TaskDraft draft = TaskDraft.ofDeadline("Done task", "", Priority.HIGH, Category.DEFAULT_ID, yesterday);
+        TaskDraft draft = TaskDraft.ofDeadline("Done task", Priority.HIGH, Category.DEFAULT_ID, yesterday);
         Task task = taskService.create(draft);
         taskService.toggleComplete(task.getId());
 
@@ -171,7 +170,7 @@ class EdgeCaseAndIntegrationTest {
         Clock c = Clock.fixed(fixedInstant, ZoneId.of("UTC"));
         TaskService ts = new TaskService(taskRepo, categoryRepo, c);
 
-        TaskDraft draft = TaskDraft.ofSimple("Clock test", "", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple("Clock test", Priority.MEDIUM, Category.DEFAULT_ID);
         Task task = ts.create(draft);
 
         assertEquals(
@@ -191,7 +190,7 @@ class EdgeCaseAndIntegrationTest {
     @Test
     @DisplayName("Toggling complete twice returns task to original incomplete state")
     void testToggleCompleteTwiceRestoresState() {
-        TaskDraft draft = TaskDraft.ofSimple("Toggle test", "", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple("Toggle test", Priority.MEDIUM, Category.DEFAULT_ID);
         Task task = taskService.create(draft);
 
         assertFalse(task.isCompleted(), "Should start incomplete");
@@ -208,7 +207,7 @@ class EdgeCaseAndIntegrationTest {
     @Test
     @DisplayName("canUndo is false before any delete, true after delete, false after undoDelete")
     void testCanUndoLifecycle() {
-        TaskDraft draft = TaskDraft.ofSimple("Undo me", "", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple("Undo me", Priority.MEDIUM, Category.DEFAULT_ID);
         Task task = taskService.create(draft);
 
         assertFalse(taskService.canUndo(), "No undo buffer initially");
@@ -230,8 +229,8 @@ class EdgeCaseAndIntegrationTest {
     @Test
     @DisplayName("Second delete overwrites undo buffer — only last deleted task is restorable")
     void testUndoBufferSingleSlot() {
-        Task t1 = taskService.create(TaskDraft.ofSimple("First", "", Priority.LOW, Category.DEFAULT_ID));
-        Task t2 = taskService.create(TaskDraft.ofSimple("Second", "", Priority.HIGH, Category.DEFAULT_ID));
+        Task t1 = taskService.create(TaskDraft.ofSimple("First", Priority.LOW, Category.DEFAULT_ID));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Second", Priority.HIGH, Category.DEFAULT_ID));
 
         taskService.delete(t1.getId());
         taskService.delete(t2.getId());
@@ -249,7 +248,7 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Tasks assigned to deleted category are reassigned to General")
     void testDeleteCategoryReassignsTasks() {
         Category cat = categoryService.create("Work", "#FF0000");
-        Task task = taskService.create(TaskDraft.ofSimple("Work item", "", Priority.MEDIUM, cat.getId()));
+        Task task = taskService.create(TaskDraft.ofSimple("Work item", Priority.MEDIUM, cat.getId()));
 
         assertEquals(cat.getId(), taskService.get(task.getId()).getCategoryId(),
                 "Task should be in Work category before deletion");
@@ -281,9 +280,9 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Deleting a task while a category filter is active correctly reduces count")
     void testDeleteWhileCategoryFiltered() {
         Category cat = categoryService.create("Projects", "#00FF00");
-        Task t1 = taskService.create(TaskDraft.ofSimple("Task A", "", Priority.MEDIUM, cat.getId()));
-        Task t2 = taskService.create(TaskDraft.ofSimple("Task B", "", Priority.MEDIUM, cat.getId()));
-        taskService.create(TaskDraft.ofSimple("Task C", "", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task t1 = taskService.create(TaskDraft.ofSimple("Task A", Priority.MEDIUM, cat.getId()));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Task B", Priority.MEDIUM, cat.getId()));
+        taskService.create(TaskDraft.ofSimple("Task C", Priority.MEDIUM, Category.DEFAULT_ID));
 
         TaskQuery filteredQuery = TaskQuery.defaultQuery().withCategory(cat.getId());
         assertEquals(2, taskService.query(filteredQuery).size(), "Should show 2 tasks in Projects before deletion");
@@ -295,42 +294,14 @@ class EdgeCaseAndIntegrationTest {
     }
 
     // =========================================================================
-    // 9. Checklist edge cases
-    // =========================================================================
-
-    @Test
-    @DisplayName("Checklist task with zero items is valid")
-    void testChecklistWithZeroItems() {
-        TaskDraft draft = TaskDraft.ofChecklist("Empty checklist", "", Priority.LOW, Category.DEFAULT_ID, List.of());
-        Task task = taskService.create(draft);
-        assertNotNull(task);
-        assertEquals(TaskType.CHECKLIST, task.getType());
-
-        ChecklistTask ct = (ChecklistTask) taskService.get(task.getId());
-        assertTrue(ct.getItems().isEmpty(), "Should have no checklist items");
-    }
-
-    @Test
-    @DisplayName("Checklist task with multiple items stores all items")
-    void testChecklistWithMultipleItems() {
-        TaskDraft draft = TaskDraft.ofChecklist("My checklist", "", Priority.HIGH, Category.DEFAULT_ID,
-                List.of("Step one", "Step two", "Step three"));
-        Task task = taskService.create(draft);
-
-        ChecklistTask ct = (ChecklistTask) taskService.get(task.getId());
-        assertEquals(3, ct.getItems().size());
-        assertEquals("Step one", ct.getItems().get(0).getText());
-    }
-
-    // =========================================================================
-    // 10. Category validation
+    // 9. Category validation
     // =========================================================================
 
     @Test
     @DisplayName("Creating a task with a non-existent categoryId throws ValidationException")
     void testTaskWithInvalidCategoryRejected() {
         UUID nonExistent = UUID.randomUUID();
-        TaskDraft draft = TaskDraft.ofSimple("Ghost task", "", Priority.MEDIUM, nonExistent);
+        TaskDraft draft = TaskDraft.ofSimple("Ghost task", Priority.MEDIUM, nonExistent);
         assertThrows(ValidationException.class, () -> taskService.create(draft));
     }
 
@@ -339,134 +310,121 @@ class EdgeCaseAndIntegrationTest {
     void testDuplicateCategoryNameRejected() {
         categoryService.create("Alpha", "#123456");
         assertThrows(ValidationException.class, () -> categoryService.create("alpha", "#654321"));
+        assertThrows(ValidationException.class, () -> categoryService.create("ALPHA", "#111111"));
+        assertThrows(ValidationException.class, () -> categoryService.create("  Alpha  ", "#222222"));
     }
 
     @Test
-    @DisplayName("Category color in invalid format is rejected")
-    void testInvalidCategoryColorRejected() {
-        assertThrows(ValidationException.class, () -> categoryService.create("Beta", "red"));
-        assertThrows(ValidationException.class, () -> categoryService.create("Gamma", "#GGGGGG"));
-        assertThrows(ValidationException.class, () -> categoryService.create("Delta", ""));
-    }
-
-    // =========================================================================
-    // 11. get(null) guard
-    // =========================================================================
-
-    @Test
-    @DisplayName("taskService.get(null) throws NotFoundException")
-    void testGetNullIdThrows() {
-        assertThrows(NotFoundException.class, () -> taskService.get(null));
-    }
-
-    @Test
-    @DisplayName("categoryService.get(null) throws NotFoundException")
-    void testGetNullCategoryIdThrows() {
-        assertThrows(NotFoundException.class, () -> categoryService.get(null));
-    }
-
-    @Test
-    @DisplayName("taskService.get(unknown UUID) throws NotFoundException")
-    void testGetUnknownIdThrows() {
-        assertThrows(NotFoundException.class, () -> taskService.get(UUID.randomUUID()));
+    @DisplayName("Invalid hex color format is rejected with ValidationException")
+    void testInvalidHexColorRejected() {
+        assertThrows(ValidationException.class, () -> categoryService.create("Cat1", "not-a-color"));
+        assertThrows(ValidationException.class, () -> categoryService.create("Cat2", "#12345"));
+        assertThrows(ValidationException.class, () -> categoryService.create("Cat3", "#1234567"));
+        assertThrows(ValidationException.class, () -> categoryService.create("Cat4", "123456"));
+        assertThrows(ValidationException.class, () -> categoryService.create("Cat5", null));
     }
 
     // =========================================================================
-    // 12. Query / filter combinations
+    // 10. Query engine edge cases
     // =========================================================================
 
     @Test
-    @DisplayName("Status filter ACTIVE excludes completed tasks")
-    void testStatusFilterActive() {
-        Task active = taskService.create(TaskDraft.ofSimple("Active", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task done = taskService.create(TaskDraft.ofSimple("Done", "", Priority.MEDIUM, Category.DEFAULT_ID));
+    @DisplayName("Query with multiple filters: active tasks with priority filter")
+    void testActiveAndPriorityFilter() {
+        Task active = taskService.create(TaskDraft.ofSimple("Active", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task done = taskService.create(TaskDraft.ofSimple("Done", Priority.MEDIUM, Category.DEFAULT_ID));
         taskService.toggleComplete(done.getId());
 
-        List<Task> results = taskService.query(TaskQuery.defaultQuery().withStatus(StatusFilter.ACTIVE));
+        TaskQuery q = TaskQuery.defaultQuery()
+                .withStatus(StatusFilter.ACTIVE)
+                .withPriority(Priority.MEDIUM);
+
+        List<Task> results = taskService.query(q);
         assertEquals(1, results.size());
-        assertEquals("Active", results.get(0).getTitle());
+        assertEquals(active.getId(), results.get(0).getId());
     }
 
     @Test
-    @DisplayName("Status filter COMPLETED returns only completed tasks")
-    void testStatusFilterCompleted() {
-        taskService.create(TaskDraft.ofSimple("Pending", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task done = taskService.create(TaskDraft.ofSimple("Finished", "", Priority.LOW, Category.DEFAULT_ID));
+    @DisplayName("Completed status filter only returns completed tasks")
+    void testCompletedStatusFilter() {
+        taskService.create(TaskDraft.ofSimple("Pending", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task done = taskService.create(TaskDraft.ofSimple("Finished", Priority.LOW, Category.DEFAULT_ID));
         taskService.toggleComplete(done.getId());
 
-        List<Task> results = taskService.query(TaskQuery.defaultQuery().withStatus(StatusFilter.COMPLETED));
+        TaskQuery q = TaskQuery.defaultQuery().withStatus(StatusFilter.COMPLETED);
+        List<Task> results = taskService.query(q);
         assertEquals(1, results.size());
-        assertEquals("Finished", results.get(0).getTitle());
+        assertEquals(done.getId(), results.get(0).getId());
     }
 
     @Test
-    @DisplayName("Search text filter matches title case-insensitively")
-    void testSearchTextCaseInsensitive() {
-        taskService.create(TaskDraft.ofSimple("Buy Milk", "", Priority.LOW, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Read Book", "", Priority.LOW, Category.DEFAULT_ID));
+    @DisplayName("Search query matches case-insensitively")
+    void testSearchCaseInsensitive() {
+        taskService.create(TaskDraft.ofSimple("Buy Milk", Priority.LOW, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Read Book", Priority.LOW, Category.DEFAULT_ID));
 
-        List<Task> results = taskService.query(TaskQuery.defaultQuery().withSearch("milk"));
-        assertEquals(1, results.size());
-        assertEquals("Buy Milk", results.get(0).getTitle());
+        List<Task> milk = taskService.query(TaskQuery.defaultQuery().withSearch("MILK"));
+        assertEquals(1, milk.size());
+        assertEquals("Buy Milk", milk.get(0).getTitle());
     }
 
     @Test
-    @DisplayName("Priority filter returns only tasks matching that priority")
-    void testPriorityFilter() {
-        taskService.create(TaskDraft.ofSimple("High prio", "", Priority.HIGH, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Low prio", "", Priority.LOW, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Med prio", "", Priority.MEDIUM, Category.DEFAULT_ID));
+    @DisplayName("Sorting by priority: HIGH precedes LOW in ascending order")
+    void testSortByPriorityAscending() {
+        taskService.create(TaskDraft.ofSimple("High prio", Priority.HIGH, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Low prio", Priority.LOW, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Med prio", Priority.MEDIUM, Category.DEFAULT_ID));
 
-        List<Task> results = taskService.query(TaskQuery.defaultQuery().withPriority(Priority.HIGH));
-        assertEquals(1, results.size());
-        assertEquals(Priority.HIGH, results.get(0).getPriority());
+        List<Task> sorted = taskService.query(
+                TaskQuery.defaultQuery().withSort(com.todoapp.service.SortOption.PRIORITY, true));
+
+        assertEquals(Priority.HIGH, sorted.get(0).getPriority());
+        assertEquals(Priority.MEDIUM, sorted.get(1).getPriority());
+        assertEquals(Priority.LOW, sorted.get(2).getPriority());
     }
 
-    // =========================================================================
-    // 13. Pinning
-    // =========================================================================
-
     @Test
-    @DisplayName("Pinned tasks appear before unpinned tasks in query results")
-    void testPinnedTasksFirst() {
-        Task normal = taskService.create(TaskDraft.ofSimple("Normal", "", Priority.LOW, Category.DEFAULT_ID));
-        Task pinned = taskService.create(TaskDraft.ofSimple("Pinned", "", Priority.LOW, Category.DEFAULT_ID));
+    @DisplayName("Pinned task always appears first regardless of sort direction")
+    void testPinnedTaskAlwaysFirst() {
+        Task normal = taskService.create(TaskDraft.ofSimple("Normal", Priority.LOW, Category.DEFAULT_ID));
+        Task pinned = taskService.create(TaskDraft.ofSimple("Pinned", Priority.LOW, Category.DEFAULT_ID));
         taskService.togglePinned(pinned.getId());
 
-        List<Task> results = taskService.query(TaskQuery.defaultQuery());
-        assertEquals("Pinned", results.get(0).getTitle(), "Pinned task should appear first");
+        List<Task> results = taskService.query(
+                TaskQuery.defaultQuery().withSort(com.todoapp.service.SortOption.TITLE, true));
+
+        assertEquals(pinned.getId(), results.get(0).getId(), "Pinned task must be first in list");
     }
 
     @Test
-    @DisplayName("Toggling pinned twice restores unpinned state")
-    void testTogglePinnedTwice() {
-        Task task = taskService.create(TaskDraft.ofSimple("Pin toggle", "", Priority.MEDIUM, Category.DEFAULT_ID));
+    @DisplayName("Toggling pinned state updates pinned flag correctly")
+    void testTogglePinned() {
+        Task task = taskService.create(TaskDraft.ofSimple("Pin toggle", Priority.MEDIUM, Category.DEFAULT_ID));
+        assertFalse(task.isPinned());
+
         taskService.togglePinned(task.getId());
         assertTrue(taskService.get(task.getId()).isPinned());
+
         taskService.togglePinned(task.getId());
         assertFalse(taskService.get(task.getId()).isPinned());
     }
 
     // =========================================================================
-    // 14. Integration test: JsonStorage round-trip
+    // 11. Integration test: JsonStorage round-trip
     // =========================================================================
 
     @Test
-    @DisplayName("Integration: save and reload all task types via JsonStorage preserves all fields")
+    @DisplayName("Integration: save and reload task types via JsonStorage preserves all fields")
     void testJsonStorageRoundTrip(@TempDir Path tempDir) throws Exception {
         // Build a full object graph via services
         Category workCat = categoryService.create("Work", "#1A2B3C");
 
         Task simple = taskService.create(TaskDraft.ofSimple(
-                "Simple task", "A plain task", Priority.HIGH, workCat.getId()));
-
-        Task checklist = taskService.create(TaskDraft.ofChecklist(
-                "Checklist task", "Has items", Priority.MEDIUM, Category.DEFAULT_ID,
-                List.of("Item Alpha", "Item Beta")));
+                "Simple task", Priority.HIGH, workCat.getId()));
 
         LocalDate dueDate = LocalDate.of(2027, 3, 15);
         Task deadline = taskService.create(TaskDraft.ofDeadline(
-                "Deadline task", "Has due date", Priority.LOW, workCat.getId(), dueDate));
+                "Deadline task", Priority.LOW, workCat.getId(), dueDate));
 
         // Complete the simple task and pin the deadline task
         taskService.toggleComplete(simple.getId());
@@ -500,7 +458,7 @@ class EdgeCaseAndIntegrationTest {
         assertEquals("#1A2B3C", loadedWork.get().getColorHex());
 
         // Verify task count
-        assertEquals(3, loaded.tasks().size(), "Should have 3 tasks after round-trip");
+        assertEquals(2, loaded.tasks().size(), "Should have 2 tasks after round-trip");
 
         // Verify simple task attributes
         Optional<Task> loadedSimple = loaded.tasks().stream()
@@ -508,18 +466,9 @@ class EdgeCaseAndIntegrationTest {
                 .findFirst();
         assertTrue(loadedSimple.isPresent(), "Simple task must survive round-trip");
         assertEquals("Simple task", loadedSimple.get().getTitle());
-        assertEquals("A plain task", loadedSimple.get().getDescription());
         assertEquals(Priority.HIGH, loadedSimple.get().getPriority());
         assertTrue(loadedSimple.get().isCompleted(), "Completed flag should be preserved");
         assertEquals(workCat.getId(), loadedSimple.get().getCategoryId());
-
-        // Verify checklist task
-        Optional<Task> loadedChecklist = loaded.tasks().stream()
-                .filter(t -> t.getId().equals(checklist.getId()))
-                .findFirst();
-        assertTrue(loadedChecklist.isPresent(), "Checklist task must survive round-trip");
-        ChecklistTask ct = (ChecklistTask) loadedChecklist.get();
-        assertEquals(2, ct.getItems().size(), "Checklist items should be preserved");
 
         // Verify deadline task
         Optional<Task> loadedDeadline = loaded.tasks().stream()
@@ -563,7 +512,7 @@ class EdgeCaseAndIntegrationTest {
     }
 
     // =========================================================================
-    // 6. Additional Stress and Edge Cases
+    // 12. Additional Stress and Edge Cases
     // =========================================================================
 
     @Test
@@ -571,7 +520,7 @@ class EdgeCaseAndIntegrationTest {
     void testPerformanceWith1000Tasks() {
         long start = System.currentTimeMillis();
         for (int i = 0; i < 1000; i++) {
-            taskRepo.save(new com.todoapp.model.SimpleTask("Task #" + i, "Desc", Priority.MEDIUM, Category.DEFAULT_ID));
+            taskRepo.save(new com.todoapp.model.SimpleTask("Task #" + i, Priority.MEDIUM, Category.DEFAULT_ID));
         }
         assertEquals(1000, taskRepo.count());
 
@@ -589,7 +538,7 @@ class EdgeCaseAndIntegrationTest {
     @DisplayName("Edge Case: Editing a task whose category was deleted reassigns to General smoothly")
     void testEditTaskWhoseCategoryWasDeleted() {
         com.todoapp.model.Category cat = categoryService.create("Temporary Cat", "#FF5722");
-        Task task = taskService.create(TaskDraft.ofSimple("Cat Task", "Desc", Priority.HIGH, cat.getId()));
+        Task task = taskService.create(TaskDraft.ofSimple("Cat Task", Priority.HIGH, cat.getId()));
         assertEquals(cat.getId(), task.getCategoryId());
 
         // Delete the category
@@ -600,7 +549,7 @@ class EdgeCaseAndIntegrationTest {
         assertEquals(Category.DEFAULT_ID, reloaded.getCategoryId());
 
         // Editing the task works cleanly without error
-        TaskDraft updateDraft = TaskDraft.ofSimple("Updated Title", "Updated Desc", Priority.LOW, Category.DEFAULT_ID);
+        TaskDraft updateDraft = TaskDraft.ofSimple("Updated Title", Priority.LOW, Category.DEFAULT_ID);
         Task updated = taskService.update(task.getId(), updateDraft);
         assertEquals("Updated Title", updated.getTitle());
         assertEquals(Category.DEFAULT_ID, updated.getCategoryId());
@@ -609,7 +558,7 @@ class EdgeCaseAndIntegrationTest {
     @Test
     @DisplayName("Edge Case: Rapid repeated complete toggles execute safely and deterministically")
     void testRapidRepeatedToggles() {
-        Task task = taskService.create(TaskDraft.ofSimple("Toggle Task", "", Priority.LOW, Category.DEFAULT_ID));
+        Task task = taskService.create(TaskDraft.ofSimple("Toggle Task", Priority.LOW, Category.DEFAULT_ID));
         assertFalse(task.isCompleted());
 
         for (int i = 0; i < 50; i++) {

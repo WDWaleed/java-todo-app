@@ -47,7 +47,7 @@ public class AppMenuBar extends MenuBar {
         newTaskItem.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN));
         newTaskItem.setOnAction(e -> {
             TaskEditorDialog dialog = new TaskEditorDialog(controller);
-            dialog.showAndWait();
+            dialog.showAndWait().ifPresent(controller::onCreateTask);
         });
 
         MenuItem exitItem = new MenuItem("Exit");

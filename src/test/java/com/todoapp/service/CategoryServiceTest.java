@@ -137,9 +137,9 @@ class CategoryServiceTest {
         Category home = categoryService.create("Home", "#388E3C");
 
         // Create tasks assigned to categories
-        Task task1 = new SimpleTask("Task 1", "Work task 1", Priority.HIGH, work.getId());
-        Task task2 = new SimpleTask("Task 2", "Work task 2", Priority.MEDIUM, work.getId());
-        Task task3 = new SimpleTask("Task 3", "Home task", Priority.LOW, home.getId());
+        Task task1 = new SimpleTask("Task 1", Priority.HIGH, work.getId());
+        Task task2 = new SimpleTask("Task 2", Priority.MEDIUM, work.getId());
+        Task task3 = new SimpleTask("Task 3", Priority.LOW, home.getId());
 
         taskRepo.save(task1);
         taskRepo.save(task2);

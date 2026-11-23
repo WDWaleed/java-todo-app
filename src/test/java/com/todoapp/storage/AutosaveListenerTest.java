@@ -53,7 +53,7 @@ class AutosaveListenerTest {
 
             // Fire 5 rapid events in < 20 ms
             for (int i = 0; i < 5; i++) {
-                taskRepo.save(new SimpleTask("Task " + i, "", Priority.MEDIUM, Category.DEFAULT_ID));
+                taskRepo.save(new SimpleTask("Task " + i, Priority.MEDIUM, Category.DEFAULT_ID));
                 listener.onTasksChanged(ChangeType.CREATED, UUID.randomUUID());
                 Thread.sleep(5);
             }
@@ -91,7 +91,7 @@ class AutosaveListenerTest {
         };
 
         try (AutosaveListener listener = new AutosaveListener(mockStorage, taskRepo, categoryRepo, msg -> {})) {
-            taskRepo.save(new SimpleTask("Flush Me", "", Priority.HIGH, Category.DEFAULT_ID));
+            taskRepo.save(new SimpleTask("Flush Me", Priority.HIGH, Category.DEFAULT_ID));
             listener.onTasksChanged(ChangeType.CREATED, UUID.randomUUID());
 
             // Flush synchronously
@@ -121,7 +121,7 @@ class AutosaveListenerTest {
         };
 
         AutosaveListener listener = new AutosaveListener(mockStorage, taskRepo, categoryRepo, msg -> {});
-        taskRepo.save(new SimpleTask("Closing Task", "", Priority.LOW, Category.DEFAULT_ID));
+        taskRepo.save(new SimpleTask("Closing Task", Priority.LOW, Category.DEFAULT_ID));
         listener.onTasksChanged(ChangeType.CREATED, UUID.randomUUID());
 
         // Close right away before debounce period completes

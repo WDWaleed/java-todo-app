@@ -18,14 +18,8 @@ public abstract class Task {
      */
     public static final int MAX_TITLE_LENGTH = 100;
 
-    /**
-     * Maximum character length permitted for task descriptions.
-     */
-    public static final int MAX_DESCRIPTION_LENGTH = 2000;
-
     private final UUID id;
     private String title;
-    private String description;
     private Priority priority;
     private UUID categoryId;
     private boolean completed;
@@ -36,20 +30,18 @@ public abstract class Task {
     /**
      * Full constructor initializing all task attributes.
      *
-     * @param id          unique immutable task identifier
-     * @param title       task title (1–100 characters)
-     * @param description optional task description (≤2000 characters; null becomes "")
-     * @param priority    priority level (defaults to MEDIUM if null)
-     * @param categoryId  category reference ID (defaults to DEFAULT_ID if null)
-     * @param completed   completion flag
-     * @param pinned      pinned flag
-     * @param createdAt   creation timestamp
-     * @param updatedAt   last modified timestamp
-     * @throws IllegalArgumentException if title or description constraints are violated
+     * @param id         unique immutable task identifier
+     * @param title      task title (1–100 characters)
+     * @param priority   priority level (defaults to MEDIUM if null)
+     * @param categoryId category reference ID (defaults to DEFAULT_ID if null)
+     * @param completed  completion flag
+     * @param pinned     pinned flag
+     * @param createdAt  creation timestamp
+     * @param updatedAt  last modified timestamp
+     * @throws IllegalArgumentException if title constraints are violated
      */
     protected Task(UUID id,
                    String title,
-                   String description,
                    Priority priority,
                    UUID categoryId,
                    boolean completed,
@@ -60,7 +52,6 @@ public abstract class Task {
         this.createdAt = Objects.requireNonNull(createdAt, "CreatedAt timestamp must not be null");
         this.updatedAt = Objects.requireNonNull(updatedAt, "UpdatedAt timestamp must not be null");
         setTitleInternal(title);
-        setDescriptionInternal(description);
         this.priority = priority != null ? priority : Priority.MEDIUM;
         this.categoryId = categoryId != null ? categoryId : Category.DEFAULT_ID;
         this.completed = completed;
@@ -70,15 +61,13 @@ public abstract class Task {
     /**
      * Convenience constructor creating a new task with generated ID and timestamps.
      *
-     * @param title       task title
-     * @param description task description
-     * @param priority    task priority
-     * @param categoryId  category ID
+     * @param title      task title
+     * @param priority   task priority
+     * @param categoryId category ID
      */
-    protected Task(String title, String description, Priority priority, UUID categoryId) {
+    protected Task(String title, Priority priority, UUID categoryId) {
         this(UUID.randomUUID(),
                 title,
-                description,
                 priority,
                 categoryId,
                 false,
@@ -125,38 +114,6 @@ public abstract class Task {
             throw new IllegalArgumentException("Task title must not exceed " + MAX_TITLE_LENGTH + " characters");
         }
         this.title = trimmed;
-    }
-
-    /**
-     * Returns the task description. Never returns null.
-     *
-     * @return description string
-     */
-    public String getDescription() {
-        return description;
-    }
-
-    /**
-     * Updates the task description and refreshes the {@code updatedAt} timestamp.
-     *
-     * @param description new description (≤2000 characters; null becomes "")
-     * @throws IllegalArgumentException if description exceeds limit
-     */
-    public void setDescription(String description) {
-        setDescriptionInternal(description);
-        touch();
-    }
-
-    private void setDescriptionInternal(String description) {
-        if (description == null) {
-            this.description = "";
-            return;
-        }
-        String trimmed = description.trim();
-        if (trimmed.length() > MAX_DESCRIPTION_LENGTH) {
-            throw new IllegalArgumentException("Task description must not exceed " + MAX_DESCRIPTION_LENGTH + " characters");
-        }
-        this.description = trimmed;
     }
 
     /**

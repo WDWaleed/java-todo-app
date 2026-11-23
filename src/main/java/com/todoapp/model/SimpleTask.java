@@ -6,50 +6,42 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Concrete implementation of a standard, simple task containing a title and description.
+ * Concrete implementation of a standard, simple task containing a title.
  */
 public class SimpleTask extends Task {
 
     /**
-     * Maximum character count displayed in summary snippet.
-     */
-    public static final int SUMMARY_MAX_LENGTH = 80;
-
-    /**
      * Constructs a SimpleTask with complete parameters.
      *
-     * @param id          task UUID
-     * @param title       task title
-     * @param description task description
-     * @param priority    task priority
-     * @param categoryId  category UUID
-     * @param completed   completion flag
-     * @param pinned      pinned flag
-     * @param createdAt   creation timestamp
-     * @param updatedAt   modification timestamp
+     * @param id         task UUID
+     * @param title      task title
+     * @param priority   task priority
+     * @param categoryId category UUID
+     * @param completed  completion flag
+     * @param pinned     pinned flag
+     * @param createdAt  creation timestamp
+     * @param updatedAt  modification timestamp
      */
     public SimpleTask(UUID id,
                       String title,
-                      String description,
                       Priority priority,
                       UUID categoryId,
                       boolean completed,
                       boolean pinned,
                       LocalDateTime createdAt,
                       LocalDateTime updatedAt) {
-        super(id, title, description, priority, categoryId, completed, pinned, createdAt, updatedAt);
+        super(id, title, priority, categoryId, completed, pinned, createdAt, updatedAt);
     }
 
     /**
      * Convenience constructor generating a random UUID and current timestamps.
      *
-     * @param title       task title
-     * @param description task description
-     * @param priority    task priority
-     * @param categoryId  category UUID
+     * @param title      task title
+     * @param priority   task priority
+     * @param categoryId category UUID
      */
-    public SimpleTask(String title, String description, Priority priority, UUID categoryId) {
-        super(title, description, priority, categoryId);
+    public SimpleTask(String title, Priority priority, UUID categoryId) {
+        super(title, priority, categoryId);
     }
 
     @Override
@@ -59,14 +51,7 @@ public class SimpleTask extends Task {
 
     @Override
     public String getSummary() {
-        String desc = getDescription();
-        if (desc == null || desc.isBlank()) {
-            return "";
-        }
-        if (desc.length() <= SUMMARY_MAX_LENGTH) {
-            return desc;
-        }
-        return desc.substring(0, SUMMARY_MAX_LENGTH - 3) + "...";
+        return "";
     }
 
     @Override
@@ -89,7 +74,6 @@ public class SimpleTask extends Task {
         return new SimpleTask(
                 getId(),
                 getTitle(),
-                getDescription(),
                 getPriority(),
                 getCategoryId(),
                 isCompleted(),

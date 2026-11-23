@@ -1,8 +1,6 @@
 package com.todoapp.storage;
 
 import com.todoapp.model.Category;
-import com.todoapp.model.ChecklistItem;
-import com.todoapp.model.ChecklistTask;
 import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.SimpleTask;
@@ -38,12 +36,10 @@ class JsonStorageTest {
         JsonStorage storage1 = new JsonStorage(dataFile);
 
         Category work = new Category("Work", "#1E88E5");
-        SimpleTask task1 = new SimpleTask("Task 1", "Desc 1", Priority.HIGH, work.getId());
-        ChecklistTask task2 = new ChecklistTask("Task 2", "Desc 2", Priority.MEDIUM, Category.DEFAULT_ID,
-                List.of(new ChecklistItem("Sub 1"), new ChecklistItem("Sub 2")));
-        DeadlineTask task3 = new DeadlineTask("Task 3", "Desc 3", Priority.LOW, work.getId(), LocalDate.of(2026, 12, 1));
+        SimpleTask task1 = new SimpleTask("Task 1", Priority.HIGH, work.getId());
+        DeadlineTask task2 = new DeadlineTask("Task 2", Priority.LOW, work.getId(), LocalDate.of(2026, 12, 1));
 
-        AppData toSave = new AppData(List.of(Category.createDefault(), work), List.of(task1, task2, task3));
+        AppData toSave = new AppData(List.of(Category.createDefault(), work), List.of(task1, task2));
         storage1.save(toSave);
 
         assertTrue(Files.exists(dataFile));
@@ -53,10 +49,9 @@ class JsonStorageTest {
         AppData loaded = storage2.load();
 
         assertEquals(2, loaded.categories().size());
-        assertEquals(3, loaded.tasks().size());
+        assertEquals(2, loaded.tasks().size());
         assertEquals(task1.getTitle(), loaded.tasks().get(0).getTitle());
         assertEquals(task2.getTitle(), loaded.tasks().get(1).getTitle());
-        assertEquals(task3.getTitle(), loaded.tasks().get(2).getTitle());
         assertTrue(storage2.getLastLoadWarning().isEmpty());
     }
 

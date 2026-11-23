@@ -77,7 +77,7 @@ class MainControllerTest {
     @Test
     @DisplayName("refresh() queries services and notifies view listeners")
     void testRefreshNotifiesListeners() {
-        taskService.create(TaskDraft.ofSimple("Task 1", "Desc 1", Priority.HIGH, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Task 1", Priority.HIGH, Category.DEFAULT_ID));
         receivedTasks.clear();
         receivedCategories.clear();
 
@@ -95,8 +95,8 @@ class MainControllerTest {
         Category work = categoryService.create("Work", "#1976D2");
         Category personal = categoryService.create("Personal", "#388E3C");
 
-        taskService.create(TaskDraft.ofSimple("Work Task", "", Priority.HIGH, work.getId()));
-        taskService.create(TaskDraft.ofSimple("Personal Task", "", Priority.LOW, personal.getId()));
+        taskService.create(TaskDraft.ofSimple("Work Task", Priority.HIGH, work.getId()));
+        taskService.create(TaskDraft.ofSimple("Personal Task", Priority.LOW, personal.getId()));
 
         receivedTasks.clear();
         receivedStates.clear();
@@ -118,8 +118,8 @@ class MainControllerTest {
     @Test
     @DisplayName("onSearch updates search query and filters live")
     void testOnSearch() {
-        taskService.create(TaskDraft.ofSimple("Buy apples", "From store", Priority.MEDIUM, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Buy bananas", "From fruit market", Priority.MEDIUM, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Buy apples", Priority.MEDIUM, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Buy bananas", Priority.MEDIUM, Category.DEFAULT_ID));
 
         receivedTasks.clear();
 
@@ -133,8 +133,8 @@ class MainControllerTest {
     @Test
     @DisplayName("onSort updates sort strategy and direction")
     void testOnSort() {
-        taskService.create(TaskDraft.ofSimple("Alpha", "", Priority.LOW, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Beta", "", Priority.HIGH, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Alpha", Priority.LOW, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Beta", Priority.HIGH, Category.DEFAULT_ID));
 
         receivedTasks.clear();
         receivedStates.clear();
@@ -153,8 +153,8 @@ class MainControllerTest {
     @Test
     @DisplayName("onStatusFilter updates completion filter")
     void testOnStatusFilter() {
-        Task t1 = taskService.create(TaskDraft.ofSimple("Active", "", Priority.MEDIUM, Category.DEFAULT_ID));
-        Task t2 = taskService.create(TaskDraft.ofSimple("Done", "", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task t1 = taskService.create(TaskDraft.ofSimple("Active", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Done", Priority.MEDIUM, Category.DEFAULT_ID));
         taskService.toggleComplete(t2.getId());
 
         receivedTasks.clear();
@@ -171,8 +171,8 @@ class MainControllerTest {
     @Test
     @DisplayName("onPriorityFilter filters by priority and clears on null")
     void testOnPriorityFilter() {
-        taskService.create(TaskDraft.ofSimple("High task", "", Priority.HIGH, Category.DEFAULT_ID));
-        taskService.create(TaskDraft.ofSimple("Low task", "", Priority.LOW, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("High task", Priority.HIGH, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Low task", Priority.LOW, Category.DEFAULT_ID));
 
         receivedTasks.clear();
 
@@ -214,7 +214,7 @@ class MainControllerTest {
     void testDomainMutationsTriggerRefresh() {
         receivedTasks.clear();
 
-        taskService.create(TaskDraft.ofSimple("Auto Refreshed Task", "", Priority.HIGH, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Auto Refreshed Task", Priority.HIGH, Category.DEFAULT_ID));
 
         assertFalse(receivedTasks.isEmpty());
         assertTrue(receivedTasks.get(receivedTasks.size() - 1).stream()
@@ -263,7 +263,7 @@ class MainControllerTest {
     @Test
     @DisplayName("onCreateTask succeeds with valid draft and updates state")
     void testOnCreateTaskSuccess() {
-        TaskDraft draft = TaskDraft.ofSimple("Buy groceries", "Milk and bread", Priority.HIGH, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple("Buy groceries", Priority.HIGH, Category.DEFAULT_ID);
         var createdOpt = controller.onCreateTask(draft);
 
         assertTrue(createdOpt.isPresent());
@@ -277,7 +277,7 @@ class MainControllerTest {
     @Test
     @DisplayName("onCreateTask handles ValidationException and sets error message")
     void testOnCreateTaskValidationFailure() {
-        TaskDraft invalidDraft = TaskDraft.ofSimple("", "Desc", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft invalidDraft = TaskDraft.ofSimple("", Priority.MEDIUM, Category.DEFAULT_ID);
         var createdOpt = controller.onCreateTask(invalidDraft);
 
         assertTrue(createdOpt.isEmpty());
@@ -288,9 +288,9 @@ class MainControllerTest {
     @Test
     @DisplayName("onUpdateTask succeeds and updates task and info message")
     void testOnUpdateTaskSuccess() {
-        Task created = taskService.create(TaskDraft.ofSimple("Initial", "Desc", Priority.LOW, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Initial", Priority.LOW, Category.DEFAULT_ID));
 
-        TaskDraft updatedDraft = TaskDraft.ofSimple("Updated Title", "Updated Desc", Priority.HIGH, Category.DEFAULT_ID);
+        TaskDraft updatedDraft = TaskDraft.ofSimple("Updated Title", Priority.HIGH, Category.DEFAULT_ID);
         var updatedOpt = controller.onUpdateTask(created.getId(), updatedDraft);
 
         assertTrue(updatedOpt.isPresent());
@@ -303,17 +303,17 @@ class MainControllerTest {
     @Test
     @DisplayName("onUpdateTask handles validation and not-found failure paths")
     void testOnUpdateTaskFailures() {
-        Task created = taskService.create(TaskDraft.ofSimple("Initial", "Desc", Priority.LOW, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Initial", Priority.LOW, Category.DEFAULT_ID));
 
         // Validation failure
-        TaskDraft invalidDraft = TaskDraft.ofSimple("   ", "Desc", Priority.LOW, Category.DEFAULT_ID);
+        TaskDraft invalidDraft = TaskDraft.ofSimple("   ", Priority.LOW, Category.DEFAULT_ID);
         var resultInvalid = controller.onUpdateTask(created.getId(), invalidDraft);
         assertTrue(resultInvalid.isEmpty());
         assertNotNull(controller.getCurrentState().errorMessage());
 
         // Not found failure
         UUID randomId = UUID.randomUUID();
-        var resultNotFound = controller.onUpdateTask(randomId, TaskDraft.ofSimple("Valid", "Desc", Priority.LOW, Category.DEFAULT_ID));
+        var resultNotFound = controller.onUpdateTask(randomId, TaskDraft.ofSimple("Valid", Priority.LOW, Category.DEFAULT_ID));
         assertTrue(resultNotFound.isEmpty());
         assertNotNull(controller.getCurrentState().errorMessage());
     }
@@ -321,7 +321,7 @@ class MainControllerTest {
     @Test
     @DisplayName("onDeleteTask removes task, buffers for undo, and handles not-found")
     void testOnDeleteTask() {
-        Task created = taskService.create(TaskDraft.ofSimple("To Delete", "Desc", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("To Delete", Priority.MEDIUM, Category.DEFAULT_ID));
 
         boolean deleted = controller.onDeleteTask(created.getId());
         assertTrue(deleted);
@@ -344,7 +344,7 @@ class MainControllerTest {
         assertEquals("Nothing to undo", controller.getCurrentState().infoMessage());
 
         // After deleting a task
-        Task created = taskService.create(TaskDraft.ofSimple("Undo Me", "", Priority.HIGH, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Undo Me", Priority.HIGH, Category.DEFAULT_ID));
         controller.onDeleteTask(created.getId());
         assertTrue(controller.canUndo());
 
@@ -359,7 +359,7 @@ class MainControllerTest {
     @Test
     @DisplayName("onToggleComplete toggles status and handles not found")
     void testOnToggleComplete() {
-        Task created = taskService.create(TaskDraft.ofSimple("Task", "", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Task", Priority.MEDIUM, Category.DEFAULT_ID));
         assertFalse(created.isCompleted());
 
         controller.onToggleComplete(created.getId());
@@ -375,7 +375,7 @@ class MainControllerTest {
     @Test
     @DisplayName("onSetPriority updates priority and handles not found")
     void testOnSetPriority() {
-        Task created = taskService.create(TaskDraft.ofSimple("Task", "", Priority.LOW, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Task", Priority.LOW, Category.DEFAULT_ID));
         assertEquals(Priority.LOW, created.getPriority());
 
         controller.onSetPriority(created.getId(), Priority.HIGH);
@@ -391,7 +391,7 @@ class MainControllerTest {
     @Test
     @DisplayName("onTogglePinned toggles pinned state and handles not found")
     void testOnTogglePinned() {
-        Task created = taskService.create(TaskDraft.ofSimple("Task", "", Priority.LOW, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Task", Priority.LOW, Category.DEFAULT_ID));
         assertFalse(created.isPinned());
 
         controller.onTogglePinned(created.getId());
@@ -479,7 +479,7 @@ class MainControllerTest {
     @DisplayName("onDeleteCategory deletes category, reassigns tasks, and falls back to All if selected")
     void testOnDeleteCategorySuccess() {
         Category projectCat = categoryService.create("Project", "#0097A7");
-        Task task = taskService.create(TaskDraft.ofSimple("Project Task", "", Priority.HIGH, projectCat.getId()));
+        Task task = taskService.create(TaskDraft.ofSimple("Project Task", Priority.HIGH, projectCat.getId()));
 
         // Select the category first
         controller.onSelectCategory(projectCat.getId());
@@ -538,9 +538,9 @@ class MainControllerTest {
         Category work = categoryService.create("Work", "#1976D2");
         Category personal = categoryService.create("Personal", "#388E3C");
 
-        Task t1 = taskService.create(TaskDraft.ofSimple("Work report", "Q4 data", Priority.HIGH, work.getId()));
-        Task t2 = taskService.create(TaskDraft.ofSimple("Work email", "Inbox check", Priority.LOW, work.getId()));
-        Task t3 = taskService.create(TaskDraft.ofSimple("Personal report", "Budget", Priority.HIGH, personal.getId()));
+        Task t1 = taskService.create(TaskDraft.ofSimple("Work report", Priority.HIGH, work.getId()));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Work email", Priority.LOW, work.getId()));
+        Task t3 = taskService.create(TaskDraft.ofSimple("Personal report", Priority.HIGH, personal.getId()));
         taskService.toggleComplete(t2.getId());
 
         receivedTasks.clear();

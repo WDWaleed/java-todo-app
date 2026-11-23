@@ -19,6 +19,7 @@ dependency-reduced-pom.xml
 
 # User and runtime data
 data.json
+todo.json
 todo-*.json
 *.json.tmp
 *.json.corrupt-*

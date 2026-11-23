@@ -6,14 +6,9 @@ package com.todoapp.model;
 public enum TaskType {
 
     /**
-     * Basic task containing a title and free-form description.
+     * Basic task containing a title.
      */
     SIMPLE("Simple"),
-
-    /**
-     * Task comprising an ordered list of checkable sub-items.
-     */
-    CHECKLIST("Checklist"),
 
     /**
      * Task linked to a specific calendar deadline with overdue alerting.

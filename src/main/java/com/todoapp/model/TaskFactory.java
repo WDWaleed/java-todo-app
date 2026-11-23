@@ -1,7 +1,5 @@
 package com.todoapp.model;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -20,7 +18,7 @@ public final class TaskFactory {
      * Uses current system time for creation and modification timestamps.
      *
      * @param draft validated task draft
-     * @return concrete Task instance (SimpleTask, ChecklistTask, or DeadlineTask)
+     * @return concrete Task instance (SimpleTask or DeadlineTask)
      * @throws IllegalArgumentException if draft is null or fails validation
      */
     public static Task create(TaskDraft draft) {
@@ -46,7 +44,6 @@ public final class TaskFactory {
             case SIMPLE -> new SimpleTask(
                     id,
                     draft.title(),
-                    draft.description(),
                     draft.priority(),
                     draft.categoryId(),
                     false,
@@ -54,28 +51,9 @@ public final class TaskFactory {
                     now,
                     now
             );
-            case CHECKLIST -> {
-                List<ChecklistItem> items = new ArrayList<>();
-                for (String text : draft.checklistItems()) {
-                    items.add(new ChecklistItem(text));
-                }
-                yield new ChecklistTask(
-                        id,
-                        draft.title(),
-                        draft.description(),
-                        draft.priority(),
-                        draft.categoryId(),
-                        false,
-                        false,
-                        now,
-                        now,
-                        items
-                );
-            }
             case DEADLINE -> new DeadlineTask(
                     id,
                     draft.title(),
-                    draft.description(),
                     draft.priority(),
                     draft.categoryId(),
                     false,
@@ -106,14 +84,11 @@ public final class TaskFactory {
         }
 
         existing.setTitle(draft.title());
-        existing.setDescription(draft.description());
         existing.setPriority(draft.priority());
         existing.setCategoryId(draft.categoryId());
 
         if (existing instanceof DeadlineTask deadlineTask) {
             deadlineTask.setDueDate(draft.dueDate());
-        } else if (existing instanceof ChecklistTask checklistTask) {
-            checklistTask.syncItems(draft.checklistItems());
         }
     }
 }

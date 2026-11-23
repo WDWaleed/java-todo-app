@@ -1,13 +1,11 @@
 package com.todoapp.service;
 
 import com.todoapp.model.Category;
-import com.todoapp.model.ChecklistTask;
 import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.SimpleTask;
 import com.todoapp.model.Task;
 import com.todoapp.model.TaskDraft;
-import com.todoapp.model.TaskType;
 import com.todoapp.repository.InMemoryCategoryRepository;
 import com.todoapp.repository.InMemoryTaskRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,8 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive test suite for TaskService covering CRUD, validations,
- * copy isolation, undo buffers, state toggles, and observer notifications.
+ * Unit tests verifying {@link TaskService} business rules, validation,
+ * change events, and copy isolation.
  */
 class TaskServiceTest {
 
@@ -42,11 +40,11 @@ class TaskServiceTest {
     void setUp() {
         taskRepo = new InMemoryTaskRepository();
         categoryRepo = new InMemoryCategoryRepository();
-        fixedClock = Clock.fixed(Instant.parse("2026-11-20T10:00:00Z"), ZoneId.of("UTC"));
+        fixedClock = Clock.fixed(Instant.parse("2026-11-20T10:15:30.00Z"), ZoneId.of("UTC"));
         taskService = new TaskService(taskRepo, categoryRepo, fixedClock);
-        eventLog = new ArrayList<>();
 
-        taskService.addListener((type, id) -> eventLog.add(type.name() + ":" + id));
+        eventLog = new ArrayList<>();
+        taskService.addListener((type, taskId) -> eventLog.add(type.name() + ":" + taskId));
     }
 
     // =========================================================================
@@ -57,7 +55,7 @@ class TaskServiceTest {
     @DisplayName("Create task of each type: success, timestamps and listener notifications")
     void testCreateTaskSuccess() {
         // Simple task
-        TaskDraft simpleDraft = TaskDraft.ofSimple("Buy groceries", "Milk and eggs", Priority.HIGH, Category.DEFAULT_ID);
+        TaskDraft simpleDraft = TaskDraft.ofSimple("Buy groceries", Priority.HIGH, Category.DEFAULT_ID);
         Task simpleTask = taskService.create(simpleDraft);
 
         assertInstanceOf(SimpleTask.class, simpleTask);
@@ -66,26 +64,20 @@ class TaskServiceTest {
         assertEquals(1, eventLog.size());
         assertTrue(eventLog.get(0).startsWith("CREATED:" + simpleTask.getId()));
 
-        // Checklist task
-        TaskDraft checklistDraft = TaskDraft.ofChecklist("Travel prep", "Packing", Priority.MEDIUM, Category.DEFAULT_ID, List.of("Passport", "Tickets"));
-        Task checklistTask = taskService.create(checklistDraft);
-        assertInstanceOf(ChecklistTask.class, checklistTask);
-        assertEquals(2, ((ChecklistTask) checklistTask).getItems().size());
-
         // Deadline task
-        TaskDraft deadlineDraft = TaskDraft.ofDeadline("Tax filing", "Submit returns", Priority.LOW, Category.DEFAULT_ID, LocalDate.of(2026, 12, 15));
+        TaskDraft deadlineDraft = TaskDraft.ofDeadline("Tax filing", Priority.LOW, Category.DEFAULT_ID, LocalDate.of(2026, 12, 15));
         Task deadlineTask = taskService.create(deadlineDraft);
         assertInstanceOf(DeadlineTask.class, deadlineTask);
         assertEquals(LocalDate.of(2026, 12, 15), ((DeadlineTask) deadlineTask).getDueDateValue());
 
-        assertEquals(3, taskRepo.count());
-        assertEquals(3, eventLog.size());
+        assertEquals(2, taskRepo.count());
+        assertEquals(2, eventLog.size());
     }
 
     @Test
     @DisplayName("Create task: copy isolation ensures modifying returned entity does not affect repository")
     void testCreateCopyIsolation() {
-        TaskDraft draft = TaskDraft.ofSimple("Original Title", "Original Desc", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft draft = TaskDraft.ofSimple("Original Title", Priority.MEDIUM, Category.DEFAULT_ID);
         Task returnedTask = taskService.create(draft);
 
         // Mutate the returned task instance
@@ -103,14 +95,14 @@ class TaskServiceTest {
     void testCreateValidationFailures() {
         assertThrows(ValidationException.class, () -> taskService.create(null));
 
-        TaskDraft blankTitle = TaskDraft.ofSimple("", "Desc", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft blankTitle = TaskDraft.ofSimple("", Priority.MEDIUM, Category.DEFAULT_ID);
         assertThrows(ValidationException.class, () -> taskService.create(blankTitle));
 
-        TaskDraft overTitle = TaskDraft.ofSimple("x".repeat(101), "Desc", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft overTitle = TaskDraft.ofSimple("x".repeat(101), Priority.MEDIUM, Category.DEFAULT_ID);
         assertThrows(ValidationException.class, () -> taskService.create(overTitle));
 
         UUID nonExistentCategory = UUID.randomUUID();
-        TaskDraft invalidCategory = TaskDraft.ofSimple("Title", "Desc", Priority.MEDIUM, nonExistentCategory);
+        TaskDraft invalidCategory = TaskDraft.ofSimple("Title", Priority.MEDIUM, nonExistentCategory);
         ValidationException catEx = assertThrows(ValidationException.class, () -> taskService.create(invalidCategory));
         assertTrue(catEx.getMessage().contains("does not exist"));
 
@@ -125,8 +117,8 @@ class TaskServiceTest {
     @Test
     @DisplayName("Get and getAll return defensive copies and handle missing entities")
     void testGetAndGetAll() {
-        Task t1 = taskService.create(TaskDraft.ofSimple("Task 1", "Desc 1", Priority.HIGH, Category.DEFAULT_ID));
-        Task t2 = taskService.create(TaskDraft.ofSimple("Task 2", "Desc 2", Priority.LOW, Category.DEFAULT_ID));
+        Task t1 = taskService.create(TaskDraft.ofSimple("Task 1", Priority.HIGH, Category.DEFAULT_ID));
+        Task t2 = taskService.create(TaskDraft.ofSimple("Task 2", Priority.LOW, Category.DEFAULT_ID));
 
         Task fetched1 = taskService.get(t1.getId());
         assertEquals(t1.getId(), fetched1.getId());
@@ -154,14 +146,13 @@ class TaskServiceTest {
     @Test
     @DisplayName("Update task: success, timestamp update, and copy isolation")
     void testUpdateTaskSuccess() {
-        Task created = taskService.create(TaskDraft.ofSimple("Initial Title", "Initial Desc", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task created = taskService.create(TaskDraft.ofSimple("Initial Title", Priority.MEDIUM, Category.DEFAULT_ID));
         eventLog.clear();
 
-        TaskDraft updateDraft = TaskDraft.ofSimple("Updated Title", "Updated Desc", Priority.HIGH, Category.DEFAULT_ID);
+        TaskDraft updateDraft = TaskDraft.ofSimple("Updated Title", Priority.HIGH, Category.DEFAULT_ID);
         Task updated = taskService.update(created.getId(), updateDraft);
 
         assertEquals("Updated Title", updated.getTitle());
-        assertEquals("Updated Desc", updated.getDescription());
         assertEquals(Priority.HIGH, updated.getPriority());
         assertEquals(1, eventLog.size());
         assertTrue(eventLog.get(0).startsWith("UPDATED:" + created.getId()));
@@ -178,24 +169,24 @@ class TaskServiceTest {
     @Test
     @DisplayName("Update task: type mutation prohibited and validation checks")
     void testUpdateTaskValidation() {
-        Task simple = taskService.create(TaskDraft.ofSimple("Simple Task", "Desc", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task simple = taskService.create(TaskDraft.ofSimple("Simple Task", Priority.MEDIUM, Category.DEFAULT_ID));
 
         // Prohibit changing task type from Simple to Deadline
-        TaskDraft deadlineDraft = TaskDraft.ofDeadline("Try Changing Type", "Desc", Priority.MEDIUM, Category.DEFAULT_ID, LocalDate.now());
+        TaskDraft deadlineDraft = TaskDraft.ofDeadline("Try Changing Type", Priority.MEDIUM, Category.DEFAULT_ID, LocalDate.now());
         ValidationException typeEx = assertThrows(ValidationException.class, () -> taskService.update(simple.getId(), deadlineDraft));
         assertTrue(typeEx.getMessage().contains("Task type cannot be changed"));
 
         // Invalid title in update draft
-        TaskDraft invalidDraft = TaskDraft.ofSimple("", "Desc", Priority.MEDIUM, Category.DEFAULT_ID);
+        TaskDraft invalidDraft = TaskDraft.ofSimple("", Priority.MEDIUM, Category.DEFAULT_ID);
         assertThrows(ValidationException.class, () -> taskService.update(simple.getId(), invalidDraft));
 
         // Unknown category in update draft
-        TaskDraft unknownCatDraft = TaskDraft.ofSimple("Valid Title", "Desc", Priority.MEDIUM, UUID.randomUUID());
+        TaskDraft unknownCatDraft = TaskDraft.ofSimple("Valid Title", Priority.MEDIUM, UUID.randomUUID());
         assertThrows(ValidationException.class, () -> taskService.update(simple.getId(), unknownCatDraft));
 
         // Non-existent task ID
-        assertThrows(NotFoundException.class, () -> taskService.update(UUID.randomUUID(), TaskDraft.ofSimple("A", "B", Priority.LOW, Category.DEFAULT_ID)));
-        assertThrows(NotFoundException.class, () -> taskService.update(null, TaskDraft.ofSimple("A", "B", Priority.LOW, Category.DEFAULT_ID)));
+        assertThrows(NotFoundException.class, () -> taskService.update(UUID.randomUUID(), TaskDraft.ofSimple("A", Priority.LOW, Category.DEFAULT_ID)));
+        assertThrows(NotFoundException.class, () -> taskService.update(null, TaskDraft.ofSimple("A", Priority.LOW, Category.DEFAULT_ID)));
     }
 
     // =========================================================================
@@ -205,8 +196,8 @@ class TaskServiceTest {
     @Test
     @DisplayName("Delete task moves entity to undo buffer, undo restores once")
     void testDeleteAndUndoBuffer() {
-        Task task1 = taskService.create(TaskDraft.ofSimple("Delete Me 1", "Desc", Priority.HIGH, Category.DEFAULT_ID));
-        Task task2 = taskService.create(TaskDraft.ofSimple("Delete Me 2", "Desc", Priority.LOW, Category.DEFAULT_ID));
+        Task task1 = taskService.create(TaskDraft.ofSimple("Delete Me 1", Priority.HIGH, Category.DEFAULT_ID));
+        Task task2 = taskService.create(TaskDraft.ofSimple("Delete Me 2", Priority.LOW, Category.DEFAULT_ID));
         eventLog.clear();
 
         // Delete task 1
@@ -246,7 +237,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("Direct restore method")
     void testDirectRestore() {
-        Task task = new SimpleTask("Standup", "Daily sync", Priority.HIGH, Category.DEFAULT_ID);
+        Task task = new SimpleTask("Standup", Priority.HIGH, Category.DEFAULT_ID);
         Task restored = taskService.restore(task);
         assertEquals(task.getId(), restored.getId());
         assertEquals(1, taskService.getAll().size());
@@ -260,7 +251,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("Toggle complete, set priority and toggle pinned")
     void testTaskStateToggles() {
-        Task task = taskService.create(TaskDraft.ofSimple("Toggles Task", "Desc", Priority.MEDIUM, Category.DEFAULT_ID));
+        Task task = taskService.create(TaskDraft.ofSimple("Toggles Task", Priority.MEDIUM, Category.DEFAULT_ID));
         assertFalse(task.isCompleted());
         assertFalse(task.isPinned());
 
@@ -305,12 +296,12 @@ class TaskServiceTest {
         taskService.addListener(failingListener);
         taskService.addListener(normalListener);
 
-        assertDoesNotThrow(() -> taskService.create(TaskDraft.ofSimple("Safe", "Desc", Priority.LOW, Category.DEFAULT_ID)));
+        assertDoesNotThrow(() -> taskService.create(TaskDraft.ofSimple("Safe", Priority.LOW, Category.DEFAULT_ID)));
         assertEquals(1, count.get());
 
         // Remove listener
         taskService.removeListener(normalListener);
-        taskService.create(TaskDraft.ofSimple("Another", "Desc", Priority.LOW, Category.DEFAULT_ID));
+        taskService.create(TaskDraft.ofSimple("Another", Priority.LOW, Category.DEFAULT_ID));
         assertEquals(1, count.get()); // No increment
     }
 
@@ -319,7 +310,7 @@ class TaskServiceTest {
     void testDefaultConstructor() {
         TaskService defaultService = new TaskService(taskRepo, categoryRepo);
         assertNotNull(defaultService);
-        Task t = defaultService.create(TaskDraft.ofSimple("Default Clock Task", "", Priority.LOW, Category.DEFAULT_ID));
+        Task t = defaultService.create(TaskDraft.ofSimple("Default Clock Task", Priority.LOW, Category.DEFAULT_ID));
         assertNotNull(t.getId());
     }
 }

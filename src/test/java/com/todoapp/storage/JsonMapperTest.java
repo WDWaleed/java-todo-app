@@ -3,8 +3,6 @@ package com.todoapp.storage;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.todoapp.model.Category;
-import com.todoapp.model.ChecklistItem;
-import com.todoapp.model.ChecklistTask;
 import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.SimpleTask;
@@ -28,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class JsonMapperTest {
 
     @Test
-    @DisplayName("Round-trip mapping of all three polymorphic task types and categories")
+    @DisplayName("Round-trip mapping of polymorphic task types and categories")
     void testRoundTripPolymorphicTasksAndCategories() {
         Category academics = new Category(UUID.randomUUID(), "Academics", "#1976D2");
         Category personal = new Category(UUID.randomUUID(), "Personal", "#388E3C");
@@ -39,7 +37,6 @@ class JsonMapperTest {
         SimpleTask simple = new SimpleTask(
                 UUID.randomUUID(),
                 "Simple Task Title",
-                "Detailed description of simple task",
                 Priority.HIGH,
                 academics.getId(),
                 false,
@@ -48,25 +45,9 @@ class JsonMapperTest {
                 updated
         );
 
-        ChecklistItem item1 = new ChecklistItem(UUID.randomUUID(), "Item 1", true);
-        ChecklistItem item2 = new ChecklistItem(UUID.randomUUID(), "Item 2", false);
-        ChecklistTask checklist = new ChecklistTask(
-                UUID.randomUUID(),
-                "Checklist Task Title",
-                "Checklist description",
-                Priority.MEDIUM,
-                personal.getId(),
-                false,
-                false,
-                created,
-                updated,
-                List.of(item1, item2)
-        );
-
         DeadlineTask deadline = new DeadlineTask(
                 UUID.randomUUID(),
                 "Deadline Task Title",
-                "Deadline description",
                 Priority.LOW,
                 Category.DEFAULT_ID,
                 true,
@@ -79,13 +60,12 @@ class JsonMapperTest {
         AppData originalData = new AppData(
                 1,
                 List.of(Category.createDefault(), academics, personal),
-                List.of(simple, checklist, deadline)
+                List.of(simple, deadline)
         );
 
         String jsonString = JsonMapper.toPrettyJson(originalData);
         assertNotNull(jsonString);
         assertTrue(jsonString.contains("\"type\": \"SIMPLE\""));
-        assertTrue(jsonString.contains("\"type\": \"CHECKLIST\""));
         assertTrue(jsonString.contains("\"type\": \"DEADLINE\""));
 
         List<String> warnings = new ArrayList<>();
@@ -94,7 +74,7 @@ class JsonMapperTest {
 
         assertEquals(1, restoredData.schemaVersion());
         assertEquals(3, restoredData.categories().size());
-        assertEquals(3, restoredData.tasks().size());
+        assertEquals(2, restoredData.tasks().size());
 
         // Verify categories
         assertEquals(Category.DEFAULT_ID, restoredData.categories().get(0).getId());
@@ -106,7 +86,6 @@ class JsonMapperTest {
         assertInstanceOf(SimpleTask.class, restoredSimple);
         assertEquals(simple.getId(), restoredSimple.getId());
         assertEquals("Simple Task Title", restoredSimple.getTitle());
-        assertEquals("Detailed description of simple task", restoredSimple.getDescription());
         assertEquals(Priority.HIGH, restoredSimple.getPriority());
         assertEquals(academics.getId(), restoredSimple.getCategoryId());
         assertFalse(restoredSimple.isCompleted());
@@ -114,21 +93,8 @@ class JsonMapperTest {
         assertEquals(created, restoredSimple.getCreatedAt());
         assertEquals(updated, restoredSimple.getUpdatedAt());
 
-        // Verify checklist task
-        Task restoredChecklist = restoredData.tasks().get(1);
-        assertInstanceOf(ChecklistTask.class, restoredChecklist);
-        ChecklistTask castChecklist = (ChecklistTask) restoredChecklist;
-        assertEquals(checklist.getId(), castChecklist.getId());
-        assertEquals(2, castChecklist.getItems().size());
-        assertEquals(item1.getId(), castChecklist.getItems().get(0).getId());
-        assertEquals("Item 1", castChecklist.getItems().get(0).getText());
-        assertTrue(castChecklist.getItems().get(0).isDone());
-        assertEquals(item2.getId(), castChecklist.getItems().get(1).getId());
-        assertEquals("Item 2", castChecklist.getItems().get(1).getText());
-        assertFalse(castChecklist.getItems().get(1).isDone());
-
         // Verify deadline task
-        Task restoredDeadline = restoredData.tasks().get(2);
+        Task restoredDeadline = restoredData.tasks().get(1);
         assertInstanceOf(DeadlineTask.class, restoredDeadline);
         DeadlineTask castDeadline = (DeadlineTask) restoredDeadline;
         assertEquals(deadline.getId(), castDeadline.getId());
@@ -153,7 +119,6 @@ class JsonMapperTest {
                       "type": "SIMPLE",
                       "id": "22222222-2222-2222-2222-222222222222",
                       "title": "Valid task",
-                      "description": "Works",
                       "priority": "LOW",
                       "categoryId": "00000000-0000-0000-0000-000000000001",
                       "completed": false,
@@ -229,28 +194,21 @@ class JsonMapperTest {
     @DisplayName("Single-argument fromJson delegates and restores valid AppData")
     void testSingleArgFromJson() {
         AppData appData = AppData.empty();
-        JsonObject json = JsonMapper.toJson(appData);
+        JsonObject json = JsonParser.parseString(JsonMapper.toJson(appData)).getAsJsonObject();
         AppData restored = JsonMapper.fromJson(json);
         assertNotNull(restored);
         assertEquals(1, restored.categories().size());
     }
 
     @Test
-    @DisplayName("Category and ChecklistItem individual mapping round-trip")
-    void testIndividualCategoryAndItemMapping() {
+    @DisplayName("Category individual mapping round-trip")
+    void testIndividualCategoryMapping() {
         Category cat = new Category(UUID.randomUUID(), "Design", "#FB8C00");
         JsonObject catJson = JsonMapper.categoryToJson(cat);
         Category restoredCat = JsonMapper.categoryFromJson(catJson);
         assertEquals(cat.getId(), restoredCat.getId());
         assertEquals("Design", restoredCat.getName());
         assertEquals("#FB8C00", restoredCat.getColorHex());
-
-        ChecklistItem item = new ChecklistItem(UUID.randomUUID(), "Wireframe UI", true);
-        JsonObject itemJson = JsonMapper.checklistItemToJson(item);
-        ChecklistItem restoredItem = JsonMapper.checklistItemFromJson(itemJson);
-        assertEquals(item.getId(), restoredItem.getId());
-        assertEquals("Wireframe UI", restoredItem.getText());
-        assertTrue(restoredItem.isDone());
     }
 
     @Test

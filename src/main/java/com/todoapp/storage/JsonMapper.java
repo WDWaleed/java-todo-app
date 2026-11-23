@@ -7,8 +7,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.todoapp.model.Category;
-import com.todoapp.model.ChecklistItem;
-import com.todoapp.model.ChecklistTask;
 import com.todoapp.model.DeadlineTask;
 import com.todoapp.model.Priority;
 import com.todoapp.model.SimpleTask;
@@ -30,51 +28,53 @@ import java.util.UUID;
  */
 public final class JsonMapper {
 
-    private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .create();
 
     private JsonMapper() {
-        // utility class
+        // Prevent instantiation
     }
 
     /**
-     * Serializes an {@link AppData} snapshot into a structured {@link JsonObject}.
+     * Serializes an {@link AppData} snapshot into a formatted JSON string.
      *
      * @param data non-null application data snapshot
-     * @return JSON object representation
+     * @return formatted JSON string representation
      */
-    public static JsonObject toJson(AppData data) {
-        Objects.requireNonNull(data, "AppData must not be null");
-        JsonObject root = new JsonObject();
-        root.addProperty("schemaVersion", data.schemaVersion());
-
-        JsonArray catArray = new JsonArray();
-        for (Category category : data.categories()) {
-            catArray.add(categoryToJson(category));
-        }
-        root.add("categories", catArray);
-
-        JsonArray taskArray = new JsonArray();
-        for (Task task : data.tasks()) {
-            taskArray.add(taskToJson(task));
-        }
-        root.add("tasks", taskArray);
-
-        return root;
+    public static String toJson(AppData data) {
+        return toPrettyJson(data);
     }
 
     /**
      * Serializes an {@link AppData} snapshot into a formatted pretty-printed JSON string.
      *
      * @param data non-null application data snapshot
-     * @return pretty-printed JSON string
+     * @return pretty-printed JSON string representation
      */
     public static String toPrettyJson(AppData data) {
-        return PRETTY_GSON.toJson(toJson(data));
+        Objects.requireNonNull(data, "AppData must not be null");
+        JsonObject root = new JsonObject();
+        root.addProperty("schemaVersion", data.schemaVersion());
+
+        JsonArray categoriesArray = new JsonArray();
+        for (Category category : data.categories()) {
+            categoriesArray.add(categoryToJson(category));
+        }
+        root.add("categories", categoriesArray);
+
+        JsonArray tasksArray = new JsonArray();
+        for (Task task : data.tasks()) {
+            tasksArray.add(taskToJson(task));
+        }
+        root.add("tasks", tasksArray);
+
+        return GSON.toJson(root);
     }
 
     /**
-     * Deserializes an {@link AppData} snapshot from a {@link JsonObject}.
-     * Invalid or unknown task entries are skipped and reported in the provided warnings list.
+     * Deserializes an {@link AppData} snapshot from a parsed {@link JsonObject}.
+     * Emits warnings for skipped or malformed items into the provided warnings collector.
      *
      * @param root     non-null root JSON object
      * @param warnings optional list to collect non-fatal loading warnings
@@ -196,7 +196,6 @@ public final class JsonMapper {
         obj.addProperty("type", task.getType().name());
         obj.addProperty("id", task.getId().toString());
         obj.addProperty("title", task.getTitle());
-        obj.addProperty("description", task.getDescription());
         obj.addProperty("priority", task.getPriority().name());
         obj.addProperty("categoryId", task.getCategoryId().toString());
         obj.addProperty("completed", task.isCompleted());
@@ -206,12 +205,6 @@ public final class JsonMapper {
 
         if (task instanceof DeadlineTask deadlineTask) {
             obj.addProperty("dueDate", DateTimeFormatter.ISO_LOCAL_DATE.format(deadlineTask.getDueDateValue()));
-        } else if (task instanceof ChecklistTask checklistTask) {
-            JsonArray itemsArray = new JsonArray();
-            for (ChecklistItem item : checklistTask.getItems()) {
-                itemsArray.add(checklistItemToJson(item));
-            }
-            obj.add("items", itemsArray);
         }
 
         return obj;
@@ -240,8 +233,6 @@ public final class JsonMapper {
 
         UUID id = UUID.fromString(json.get("id").getAsString());
         String title = json.get("title").getAsString();
-        String description = json.has("description") && !json.get("description").isJsonNull()
-                ? json.get("description").getAsString() : "";
         Priority priority = json.has("priority") && !json.get("priority").isJsonNull()
                 ? Priority.valueOf(json.get("priority").getAsString()) : Priority.MEDIUM;
         UUID categoryId = json.has("categoryId") && !json.get("categoryId").isJsonNull()
@@ -256,7 +247,7 @@ public final class JsonMapper {
                 : LocalDateTime.now();
 
         return switch (type) {
-            case SIMPLE -> new SimpleTask(id, title, description, priority, categoryId,
+            case SIMPLE -> new SimpleTask(id, title, priority, categoryId,
                     completed, pinned, createdAt, updatedAt);
             case DEADLINE -> {
                 if (!json.has("dueDate") || json.get("dueDate").isJsonNull()) {
@@ -264,51 +255,9 @@ public final class JsonMapper {
                 }
                 LocalDate dueDate = LocalDate.parse(json.get("dueDate").getAsString(),
                         DateTimeFormatter.ISO_LOCAL_DATE);
-                yield new DeadlineTask(id, title, description, priority, categoryId,
+                yield new DeadlineTask(id, title, priority, categoryId,
                         completed, pinned, createdAt, updatedAt, dueDate);
             }
-            case CHECKLIST -> {
-                List<ChecklistItem> items = new ArrayList<>();
-                if (json.has("items") && json.get("items").isJsonArray()) {
-                    JsonArray arr = json.getAsJsonArray("items");
-                    for (JsonElement elem : arr) {
-                        if (elem.isJsonObject()) {
-                            items.add(checklistItemFromJson(elem.getAsJsonObject()));
-                        }
-                    }
-                }
-                yield new ChecklistTask(id, title, description, priority, categoryId,
-                        completed, pinned, createdAt, updatedAt, items);
-            }
         };
-    }
-
-    /**
-     * Serializes a {@link ChecklistItem} into a {@link JsonObject}.
-     *
-     * @param item non-null checklist item
-     * @return JSON object representation
-     */
-    public static JsonObject checklistItemToJson(ChecklistItem item) {
-        Objects.requireNonNull(item, "ChecklistItem must not be null");
-        JsonObject obj = new JsonObject();
-        obj.addProperty("id", item.getId().toString());
-        obj.addProperty("text", item.getText());
-        obj.addProperty("done", item.isDone());
-        return obj;
-    }
-
-    /**
-     * Deserializes a {@link ChecklistItem} from a {@link JsonObject}.
-     *
-     * @param json non-null JSON object
-     * @return restored ChecklistItem
-     */
-    public static ChecklistItem checklistItemFromJson(JsonObject json) {
-        Objects.requireNonNull(json, "ChecklistItem JSON object must not be null");
-        UUID id = UUID.fromString(json.get("id").getAsString());
-        String text = json.get("text").getAsString();
-        boolean done = json.has("done") && json.get("done").getAsBoolean();
-        return new ChecklistItem(id, text, done);
     }
 }
